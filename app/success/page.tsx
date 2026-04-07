@@ -39,7 +39,18 @@ const detailChecklist = [
   "Any promos or offers you want us to highlight",
 ];
 
-export default function SuccessPage() {
+type SuccessPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function getSingleParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function SuccessPage({ searchParams }: SuccessPageProps) {
+  const params = searchParams ? await searchParams : undefined;
+  const facebookStatus = getSingleParam(params?.facebook);
+
   return (
     <div className="min-h-screen bg-[#f7f5ef] text-[#132027]">
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-6 py-12 sm:px-10 lg:px-16">
@@ -88,7 +99,7 @@ export default function SuccessPage() {
 
         <section className="rounded-3xl border border-[#d9d2c3] bg-white p-8 sm:p-10">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#846b42]">
-            Facebook connection prep
+            Facebook connection
           </p>
           <h2 className="mt-3 text-3xl font-bold text-[#132027]">
             Get this ready before onboarding.
@@ -96,6 +107,24 @@ export default function SuccessPage() {
           <p className="mt-3 max-w-3xl text-lg text-[#405058]">
             We want the Facebook setup to take minutes, not turn into a scavenger hunt for passwords and page access.
           </p>
+
+          {facebookStatus === "connected" ? (
+            <div className="mt-6 rounded-2xl border border-[#b7d5c2] bg-[#edf7f0] p-4 text-[#214b33]">
+              Facebook connection request received. We still need to finish the full Meta token handoff, but the connect flow is now wired into the site.
+            </div>
+          ) : facebookStatus === "error" || facebookStatus === "missing_code" ? (
+            <div className="mt-6 rounded-2xl border border-[#e3c2b7] bg-[#fff4ef] p-4 text-[#7a3d2b]">
+              Facebook connection did not finish cleanly. No big deal, just try the button again.
+            </div>
+          ) : null}
+
+          <a
+            href="/api/facebook/connect"
+            className="mt-6 inline-flex rounded-full bg-[#1877f2] px-6 py-3 font-semibold text-white transition hover:bg-[#1669d8]"
+          >
+            Connect Facebook Page
+          </a>
+
           <ol className="mt-6 space-y-4 text-[#2e3c42]">
             {facebookSteps.map((step, index) => (
               <li key={step} className="flex gap-4 rounded-2xl bg-[#f7f5ef] p-4">
