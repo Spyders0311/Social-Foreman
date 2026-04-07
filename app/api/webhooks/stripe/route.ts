@@ -1,5 +1,10 @@
 import Stripe from "stripe";
-import { buildWelcomeEmail, upsertCheckoutRecord } from "../../../../src/lib/onboarding";
+import { sendEmail } from "../../../../src/lib/email";
+import {
+  buildOwnerNotificationEmail,
+  buildWelcomeEmail,
+  upsertCheckoutRecord,
+} from "../../../../src/lib/onboarding";
 
 export const runtime = "nodejs";
 
@@ -39,14 +44,28 @@ export async function POST(request: Request) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         const record = await upsertCheckoutRecord(event, session);
+        const ownerEmail = buildOwnerNotificationEmail(record);
         const welcomeEmail = buildWelcomeEmail(record);
+        const notifyAddresses = (process.env.ONBOARDING_NOTIFICATION_EMAIL ?? "")
+          .split(",")
+          .map((value) => value.trim())
+          .filter(Boolean);
+
+        for (const notifyAddress of notifyAddresses) {
+          await sendEmail({ to: notifyAddress, ...ownerEmail });
+        }
+
+        if (record.customerEmail) {
+          await sendEmail({ to: record.customerEmail, ...welcomeEmail });
+        }
 
         console.log("Stripe checkout completed:", {
           eventId: event.id,
           customerEmail: record.customerEmail,
           subscriptionId: record.subscriptionId,
           onboardingStatus: record.status,
-          welcomeEmailSubject: welcomeEmail.subject,
+          ownerNotificationRecipients: notifyAddresses.length,
+          customerWelcomeSent: Boolean(record.customerEmail),
         });
         break;
       }

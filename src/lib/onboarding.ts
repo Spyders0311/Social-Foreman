@@ -46,7 +46,8 @@ export async function upsertCheckoutRecord(
     status: "paid-awaiting-onboarding",
     notes: [
       "Stripe checkout completed.",
-      "Send welcome email.",
+      "Send owner notification email.",
+      "Send customer welcome email.",
       "Collect Facebook Page access.",
       "Collect business details and service area.",
     ],
@@ -85,9 +86,31 @@ To keep this moving quickly, reply with:
 - City / service area
 - Main services
 - Best email + phone for customer-facing content
+- Website URL
 - Facebook Page URL
+- Any promos or offers you want us to highlight
 
 Thanks,
 Social Foreman`,
+  };
+}
+
+export function buildOwnerNotificationEmail(record: OnboardingRecord) {
+  return {
+    subject: `New Social Foreman signup: ${record.customerEmail ?? "unknown email"}`,
+    text: `A new Social Foreman subscription was created.
+
+Customer email: ${record.customerEmail ?? "unknown"}
+Customer name: ${record.customerName ?? "unknown"}
+Stripe customer ID: ${record.customerId ?? "unknown"}
+Subscription ID: ${record.subscriptionId ?? "unknown"}
+Status: ${record.status}
+Created at: ${record.createdAt}
+
+Next actions:
+- confirm welcome email sent
+- collect business details
+- collect Facebook Page URL and access
+- begin onboarding workflow`,
   };
 }
