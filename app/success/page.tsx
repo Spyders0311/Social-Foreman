@@ -50,6 +50,7 @@ function getSingleParam(value: string | string[] | undefined) {
 export default async function SuccessPage({ searchParams }: SuccessPageProps) {
   const params = searchParams ? await searchParams : undefined;
   const facebookStatus = getSingleParam(params?.facebook);
+  const pagesCount = getSingleParam(params?.pages);
 
   return (
     <div className="min-h-screen bg-[#f7f5ef] text-[#132027]">
@@ -110,7 +111,15 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
 
           {facebookStatus === "connected" ? (
             <div className="mt-6 rounded-2xl border border-[#b7d5c2] bg-[#edf7f0] p-4 text-[#214b33]">
-              Facebook connection request received. We still need to finish the full Meta token handoff, but the connect flow is now wired into the site.
+              Facebook login worked, and we found {pagesCount ?? "some"} page connection option{pagesCount === "1" ? "" : "s"}. We still need to finish secure storage and page selection before posting goes live.
+            </div>
+          ) : facebookStatus === "connected_no_pages" ? (
+            <div className="mt-6 rounded-2xl border border-[#f0d9a6] bg-[#fff8e8] p-4 text-[#6a4c12]">
+              Facebook login worked, but we could not fetch any Pages yet. That usually means the app still needs the correct page permissions or review setup.
+            </div>
+          ) : facebookStatus === "token_error" ? (
+            <div className="mt-6 rounded-2xl border border-[#e3c2b7] bg-[#fff4ef] p-4 text-[#7a3d2b]">
+              Facebook login started, but the token handoff failed. Double-check the Meta app settings and try again.
             </div>
           ) : facebookStatus === "error" || facebookStatus === "missing_code" ? (
             <div className="mt-6 rounded-2xl border border-[#e3c2b7] bg-[#fff4ef] p-4 text-[#7a3d2b]">
