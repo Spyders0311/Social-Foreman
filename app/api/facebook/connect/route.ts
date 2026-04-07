@@ -10,9 +10,13 @@ function getOrigin(request: Request) {
 export async function GET(request: Request) {
   try {
     const requestUrl = new URL(request.url);
-    const state = requestUrl.searchParams.get("state") ?? crypto.randomUUID();
     const email = requestUrl.searchParams.get("email");
-    const redirectUrl = buildFacebookOAuthUrl(getOrigin(request), state, email);
+    const statePayload = {
+      nonce: crypto.randomUUID(),
+      email,
+    };
+    const state = Buffer.from(JSON.stringify(statePayload)).toString("base64url");
+    const redirectUrl = buildFacebookOAuthUrl(getOrigin(request), state);
 
     return Response.redirect(redirectUrl, 302);
   } catch (error) {

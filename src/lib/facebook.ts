@@ -47,14 +47,8 @@ export function getFacebookAppSecret() {
   return appSecret;
 }
 
-export function getFacebookRedirectUri(origin: string, customerEmail?: string | null) {
-  const redirectUrl = new URL(`${origin}/api/facebook/callback`);
-
-  if (customerEmail) {
-    redirectUrl.searchParams.set("email", customerEmail);
-  }
-
-  return redirectUrl.toString();
+export function getFacebookRedirectUri(origin: string) {
+  return `${origin}/api/facebook/callback`;
 }
 
 export function getFacebookTestPostSecret() {
@@ -77,10 +71,10 @@ export function getFacebookTestPostAllowedEmail() {
   return email.trim().toLowerCase();
 }
 
-export function buildFacebookOAuthUrl(origin: string, state: string, customerEmail?: string | null) {
+export function buildFacebookOAuthUrl(origin: string, state: string) {
   const params = new URLSearchParams({
     client_id: getFacebookAppId(),
-    redirect_uri: getFacebookRedirectUri(origin, customerEmail),
+    redirect_uri: getFacebookRedirectUri(origin),
     state,
     scope: [
       "pages_show_list",
@@ -93,11 +87,11 @@ export function buildFacebookOAuthUrl(origin: string, state: string, customerEma
   return `https://www.facebook.com/v22.0/dialog/oauth?${params.toString()}`;
 }
 
-export async function exchangeFacebookCodeForToken(origin: string, code: string, customerEmail?: string | null) {
+export async function exchangeFacebookCodeForToken(origin: string, code: string) {
   const params = new URLSearchParams({
     client_id: getFacebookAppId(),
     client_secret: getFacebookAppSecret(),
-    redirect_uri: getFacebookRedirectUri(origin, customerEmail),
+    redirect_uri: getFacebookRedirectUri(origin),
     code,
   });
 

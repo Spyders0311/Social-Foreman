@@ -17,7 +17,20 @@ export async function GET(request: Request) {
   const code = requestUrl.searchParams.get("code");
   const error = requestUrl.searchParams.get("error");
   const origin = getOrigin(request);
-  const customerEmail = requestUrl.searchParams.get("email");
+  const encodedState = requestUrl.searchParams.get("state");
+
+  let customerEmail: string | null = null;
+
+  if (encodedState) {
+    try {
+      const parsed = JSON.parse(Buffer.from(encodedState, "base64url").toString("utf8")) as {
+        email?: string | null;
+      };
+      customerEmail = parsed.email ?? null;
+    } catch {
+      customerEmail = null;
+    }
+  }
 
   if (error) {
     return Response.redirect(`${origin}/success?facebook=error`, 302);
@@ -28,7 +41,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const accessToken = await exchangeFacebookCodeForToken(origin, code, customerEmail);
+    const accessToken = await exchangeFacebookCodeForToken(origin, code);
     const profile = await fetchFacebookProfile(accessToken);
 
     try {
