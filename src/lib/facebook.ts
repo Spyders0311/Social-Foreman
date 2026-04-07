@@ -45,7 +45,11 @@ export function buildFacebookOAuthUrl(origin: string, state: string) {
     client_id: getFacebookAppId(),
     redirect_uri: getFacebookRedirectUri(origin),
     state,
-    scope: "public_profile",
+    scope: [
+      "pages_show_list",
+      "pages_read_engagement",
+      "pages_manage_posts",
+    ].join(","),
     response_type: "code",
   });
 
