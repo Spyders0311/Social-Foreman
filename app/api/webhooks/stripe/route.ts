@@ -1,9 +1,9 @@
 import Stripe from "stripe";
 import { sendEmail } from "../../../../src/lib/email";
 import {
+  buildCheckoutRecord,
   buildOwnerNotificationEmail,
   buildWelcomeEmail,
-  upsertCheckoutRecord,
 } from "../../../../src/lib/onboarding";
 
 export const runtime = "nodejs";
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        const record = await upsertCheckoutRecord(event, session);
+        const record = buildCheckoutRecord(event, session);
         const ownerEmail = buildOwnerNotificationEmail(record);
         const welcomeEmail = buildWelcomeEmail(record);
         const notifyAddresses = (process.env.ONBOARDING_NOTIFICATION_EMAIL ?? "")

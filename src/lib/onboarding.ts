@@ -1,5 +1,3 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
 import Stripe from "stripe";
 
 export type OnboardingRecord = {
@@ -13,30 +11,11 @@ export type OnboardingRecord = {
   notes: string[];
 };
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const ONBOARDING_PATH = path.join(DATA_DIR, "onboarding-signups.json");
-
-async function readRecords(): Promise<OnboardingRecord[]> {
-  try {
-    const raw = await readFile(ONBOARDING_PATH, "utf8");
-    return JSON.parse(raw) as OnboardingRecord[];
-  } catch {
-    return [];
-  }
-}
-
-async function writeRecords(records: OnboardingRecord[]) {
-  await mkdir(DATA_DIR, { recursive: true });
-  await writeFile(ONBOARDING_PATH, JSON.stringify(records, null, 2));
-}
-
-export async function upsertCheckoutRecord(
+export function buildCheckoutRecord(
   event: Stripe.Event,
   session: Stripe.Checkout.Session,
-) {
-  const records = await readRecords();
-
-  const nextRecord: OnboardingRecord = {
+): OnboardingRecord {
+  return {
     stripeEventId: event.id,
     createdAt: new Date().toISOString(),
     customerId: typeof session.customer === "string" ? session.customer : null,
@@ -52,18 +31,6 @@ export async function upsertCheckoutRecord(
       "Collect business details and service area.",
     ],
   };
-
-  const existingIndex = records.findIndex((record) => record.stripeEventId === event.id);
-
-  if (existingIndex >= 0) {
-    records[existingIndex] = nextRecord;
-  } else {
-    records.unshift(nextRecord);
-  }
-
-  await writeRecords(records);
-
-  return nextRecord;
 }
 
 export function buildWelcomeEmail(record: OnboardingRecord) {
