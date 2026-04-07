@@ -5,28 +5,38 @@ const nextSteps = [
       "We’ll send a quick onboarding email so you know exactly what we need from you and what happens next.",
   },
   {
-    title: "Connect Facebook",
-    description:
-      "Link your Facebook Business Page so we can draft, review, and prepare your posts for publishing.",
-  },
-  {
     title: "Send your business details",
     description:
-      "We’ll use your service area, offers, photos, and tone to make the content sound like your company, not a template.",
+      "Reply with your business name, service area, main services, best phone number, and the tone you want your posts to have.",
+  },
+  {
+    title: "Connect Facebook",
+    description:
+      "Link your Facebook Business Page so we can prepare your publishing workflow and get your content pointed at the right page.",
   },
   {
     title: "Approve your first batch",
     description:
-      "You’ll review the first round, we’ll make any tweaks, then we start building your monthly content rhythm.",
+      "We’ll shape the first month of content around trust, proof, and local visibility, then tighten it up with your feedback.",
   },
 ];
 
 const facebookSteps = [
   "Log into the Facebook account that manages your business page.",
   "Open your Facebook Business Page and confirm you have full admin access.",
-  "Make sure the page is published and not restricted by age or country unless you intentionally want that.",
-  "Have your Instagram login handy too if you want bundled Meta setup later.",
-  "Once our onboarding email arrives, follow the connect-Facebook link there so we can request the right permissions.",
+  "Make sure the page is published and not restricted unless you intentionally want that.",
+  "Keep your page URL handy so you can send it during onboarding.",
+  "When our onboarding email arrives, follow the Facebook connection instructions there so we can request the right permissions.",
+];
+
+const detailChecklist = [
+  "Business name",
+  "City or service area",
+  "Main services",
+  "Best customer-facing phone number",
+  "Website URL",
+  "Facebook Page URL",
+  "Any promos or offers you want us to highlight",
 ];
 
 export default function SuccessPage() {
@@ -41,12 +51,10 @@ export default function SuccessPage() {
             Welcome to Social Foreman.
           </h1>
           <p className="mt-5 max-w-3xl text-lg text-[#e8dcc9]">
-            Good call. You just bought yourself a cleaner content pipeline, a more active social presence,
-            and fewer late-night "I should probably post something" moments.
+            Good move. You just took social posting off your plate and gave your business a cleaner path to staying visible online.
           </p>
           <div className="mt-8 rounded-2xl bg-white/8 p-5 text-sm leading-7 text-[#f6ead8]">
-            Next up, we’ll get your business details, connect your Facebook page, and build your first batch
-            of content so this starts feeling useful fast.
+            We’ll guide you through onboarding, collect the details we need, connect Facebook, and get your first round of content moving fast.
           </div>
         </section>
 
@@ -60,6 +68,22 @@ export default function SuccessPage() {
               <p className="mt-3 leading-7 text-[#405058]">{step.description}</p>
             </article>
           ))}
+        </section>
+
+        <section className="rounded-3xl border border-[#d9d2c3] bg-white p-8 sm:p-10">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#846b42]">
+            What to send us
+          </p>
+          <h2 className="mt-3 text-3xl font-bold text-[#132027]">
+            The faster we get this, the faster we can build.
+          </h2>
+          <ul className="mt-6 grid gap-3 text-[#2e3c42] sm:grid-cols-2">
+            {detailChecklist.map((item) => (
+              <li key={item} className="rounded-2xl bg-[#f7f5ef] px-4 py-4 leading-7">
+                - {item}
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section className="rounded-3xl border border-[#d9d2c3] bg-white p-8 sm:p-10">
@@ -87,10 +111,10 @@ export default function SuccessPage() {
         <section className="rounded-3xl bg-[#132027] p-8 text-[#f8f2e8] sm:p-10">
           <h2 className="text-3xl font-bold">What we’ll do on our side</h2>
           <ul className="mt-5 space-y-3 text-[#d8cec1]">
-            <li>- review your business info and service area</li>
+            <li>- review your business info, offers, and service area</li>
             <li>- shape your content around trust, local proof, and homeowner confidence</li>
+            <li>- prep your Facebook publishing workflow</li>
             <li>- build your first monthly content batch</li>
-            <li>- help tighten the posting workflow so it stays easy to maintain</li>
           </ul>
           <p className="mt-6 text-sm text-[#d7c6a1]">
             Questions before the onboarding email lands? Just reply and we’ll help you get unstuck.

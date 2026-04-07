@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { buildWelcomeEmail, upsertCheckoutRecord } from "../../../../src/lib/onboarding";
 
 export const runtime = "nodejs";
 
@@ -35,7 +36,20 @@ export async function POST(request: Request) {
     const event = stripe.webhooks.constructEvent(rawBody, signature, getWebhookSecret());
 
     switch (event.type) {
-      case "checkout.session.completed":
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const record = await upsertCheckoutRecord(event, session);
+        const welcomeEmail = buildWelcomeEmail(record);
+
+        console.log("Stripe checkout completed:", {
+          eventId: event.id,
+          customerEmail: record.customerEmail,
+          subscriptionId: record.subscriptionId,
+          onboardingStatus: record.status,
+          welcomeEmailSubject: welcomeEmail.subject,
+        });
+        break;
+      }
       case "customer.subscription.created":
       case "customer.subscription.updated":
       case "customer.subscription.deleted":
