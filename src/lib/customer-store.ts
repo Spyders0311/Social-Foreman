@@ -55,24 +55,42 @@ export async function attachFacebookConnection(input: {
   }
 
   const hasSelectedPage = Boolean(input.selectedPage?.pageId);
+  const timestamp = new Date().toISOString();
+
+  const { data: latestRecord, error: lookupError } = await supabase
+    .from("customer_onboarding")
+    .select("id")
+    .eq("customer_email", input.customerEmail)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<{ id: string }>();
+
+  if (lookupError) {
+    throw new Error(`Supabase Facebook lookup failed: ${lookupError.message}`);
+  }
+
+  if (!latestRecord?.id) {
+    throw new Error(`No onboarding record found for ${input.customerEmail}`);
+  }
+
   const { error } = await supabase
     .from("customer_onboarding")
     .update({
       facebook_user_id: input.facebookUserId ?? null,
       facebook_user_name: input.facebookUserName ?? null,
       facebook_page_count: input.facebookPageCount ?? 0,
-      facebook_connected_at: new Date().toISOString(),
+      facebook_connected_at: timestamp,
       facebook_selected_page_id: input.selectedPage?.pageId ?? null,
       facebook_selected_page_name: input.selectedPage?.pageName ?? null,
       facebook_page_access_token: input.selectedPage?.pageAccessToken ?? null,
-      facebook_page_selected_at: hasSelectedPage ? new Date().toISOString() : null,
+      facebook_page_selected_at: hasSelectedPage ? timestamp : null,
       onboarding_status: hasSelectedPage
         ? "facebook-page-linked"
         : input.facebookPageCount && input.facebookPageCount > 0
           ? "facebook-connected"
           : "facebook-connected-no-pages",
     })
-    .eq("customer_email", input.customerEmail);
+    .eq("id", latestRecord.id);
 
   if (error) {
     throw new Error(`Supabase Facebook update failed: ${error.message}`);
