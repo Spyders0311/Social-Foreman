@@ -17,13 +17,7 @@ export function buildFacebookOAuthUrl(origin: string, state: string) {
     client_id: getFacebookAppId(),
     redirect_uri: getFacebookRedirectUri(origin),
     state,
-    scope: [
-      "pages_show_list",
-      "pages_read_engagement",
-      "pages_manage_posts",
-      "pages_manage_metadata",
-      "business_management",
-    ].join(","),
+    scope: "public_profile,email",
     response_type: "code",
   });
 
