@@ -128,7 +128,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
           ) : null}
 
           <a
-            href="/api/facebook/connect"
+            href="/api/facebook/connect?email=spyders03@gmail.com"
             className="mt-6 inline-flex rounded-full bg-[#1877f2] px-6 py-3 font-semibold text-white transition hover:bg-[#1669d8]"
           >
             Connect Facebook Page

@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { upsertStripeOnboarding } from "../../../../src/lib/customer-store";
 import { sendEmail } from "../../../../src/lib/email";
 import {
   buildCheckoutRecord,
@@ -50,6 +51,8 @@ export async function POST(request: Request) {
           .split(",")
           .map((value) => value.trim())
           .filter(Boolean);
+
+        await upsertStripeOnboarding(record);
 
         for (const notifyAddress of notifyAddresses) {
           await sendEmail({ to: notifyAddress, ...ownerEmail });

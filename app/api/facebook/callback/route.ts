@@ -1,3 +1,4 @@
+import { attachFacebookConnection } from "../../../../src/lib/customer-store";
 import {
   exchangeFacebookCodeForToken,
   fetchFacebookPages,
@@ -16,6 +17,7 @@ export async function GET(request: Request) {
   const code = requestUrl.searchParams.get("code");
   const error = requestUrl.searchParams.get("error");
   const origin = getOrigin(request);
+  const customerEmail = requestUrl.searchParams.get("email");
 
   if (error) {
     return Response.redirect(`${origin}/success?facebook=error`, 302);
@@ -33,6 +35,13 @@ export async function GET(request: Request) {
       const pages = await fetchFacebookPages(accessToken);
       const pageCount = String(pages.length);
 
+      await attachFacebookConnection({
+        customerEmail,
+        facebookUserId: profile.id,
+        facebookUserName: profile.name,
+        facebookPageCount: pages.length,
+      });
+
       console.log("Facebook token exchange succeeded", {
         facebookUserId: profile.id,
         facebookUserName: profile.name,
@@ -44,6 +53,13 @@ export async function GET(request: Request) {
       console.log("Facebook login succeeded but page fetch failed", {
         facebookUserId: profile.id,
         reason: pageError instanceof Error ? pageError.message : "Unknown error",
+      });
+
+      await attachFacebookConnection({
+        customerEmail,
+        facebookUserId: profile.id,
+        facebookUserName: profile.name,
+        facebookPageCount: 0,
       });
 
       return Response.redirect(`${origin}/success?facebook=connected_no_pages`, 302);
