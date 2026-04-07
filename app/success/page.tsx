@@ -47,10 +47,17 @@ function getSingleParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+const defaultTestPostMessage =
+  "Social Foreman test post: Facebook page connection is live and server-side publishing is ready for verification.";
+
 export default async function SuccessPage({ searchParams }: SuccessPageProps) {
   const params = searchParams ? await searchParams : undefined;
   const facebookStatus = getSingleParam(params?.facebook);
   const pagesCount = getSingleParam(params?.pages);
+  const selectedPageId = getSingleParam(params?.selectedPageId);
+  const selectedPageName = getSingleParam(params?.selectedPageName);
+  const customerEmail = "spyders03@gmail.com";
+  const pageReady = facebookStatus === "page_linked";
 
   return (
     <div className="min-h-screen bg-[#f7f5ef] text-[#132027]">
@@ -109,9 +116,13 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
             We want the Facebook setup to take minutes, not turn into a scavenger hunt for passwords and page access.
           </p>
 
-          {facebookStatus === "connected" ? (
+          {pageReady ? (
             <div className="mt-6 rounded-2xl border border-[#b7d5c2] bg-[#edf7f0] p-4 text-[#214b33]">
-              Facebook login worked, and we found {pagesCount ?? "some"} page connection option{pagesCount === "1" ? "" : "s"}. We still need to finish secure storage and page selection before posting goes live.
+              Facebook is fully linked and ready for page-level publishing. Connected page: {selectedPageName ?? "your page"}{selectedPageId ? ` (${selectedPageId})` : ""}.
+            </div>
+          ) : facebookStatus === "connected" ? (
+            <div className="mt-6 rounded-2xl border border-[#b7d5c2] bg-[#edf7f0] p-4 text-[#214b33]">
+              Facebook login worked, and we found {pagesCount ?? "some"} page connection option{pagesCount === "1" ? "" : "s"}. If there is exactly one page, we now auto-link it. If there are multiple pages, page picking still needs its next UI pass.
             </div>
           ) : facebookStatus === "connected_no_pages" ? (
             <div className="mt-6 rounded-2xl border border-[#f0d9a6] bg-[#fff8e8] p-4 text-[#6a4c12]">
@@ -133,6 +144,50 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
           >
             Connect Facebook Page
           </a>
+
+          {pageReady ? (
+            <div className="mt-6 rounded-2xl border border-[#d9d2c3] bg-[#f7f5ef] p-5">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#846b42]">
+                Kyle-only test post
+              </p>
+              <p className="mt-3 text-sm leading-6 text-[#405058]">
+                This hits the authenticated server-side test endpoint and only works for the allowlisted email configured in env.
+              </p>
+              <form action="/api/facebook/test-post" method="POST" className="mt-4 space-y-4">
+                <input type="hidden" name="customerEmail" value={customerEmail} />
+                <div>
+                  <label htmlFor="message" className="text-sm font-medium text-[#132027]">
+                    Test message
+                  </label>
+                  <textarea
+                    id="message"
+                    name="message"
+                    defaultValue={defaultTestPostMessage}
+                    rows={4}
+                    className="mt-2 w-full rounded-2xl border border-[#c9c1b3] bg-white px-4 py-3 text-sm text-[#132027]"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="secret" className="text-sm font-medium text-[#132027]">
+                    Test post secret
+                  </label>
+                  <input
+                    id="secret"
+                    name="secret"
+                    type="password"
+                    required
+                    className="mt-2 w-full rounded-full border border-[#c9c1b3] bg-white px-4 py-3 text-sm text-[#132027]"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="inline-flex rounded-full bg-[#132027] px-5 py-3 font-semibold text-[#f8f2e8] transition hover:bg-[#21414b]"
+                >
+                  Send test post
+                </button>
+              </form>
+            </div>
+          ) : null}
 
           <ol className="mt-6 space-y-4 text-[#2e3c42]">
             {facebookSteps.map((step, index) => (

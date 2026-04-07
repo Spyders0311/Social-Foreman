@@ -1,6 +1,26 @@
 import { getSupabaseAdmin } from "./supabase";
 import type { OnboardingRecord } from "./onboarding";
 
+export type FacebookSelectionInput = {
+  pageId?: string | null;
+  pageName?: string | null;
+  pageAccessToken?: string | null;
+};
+
+export type CustomerFacebookRecord = {
+  customer_email: string | null;
+  customer_name: string | null;
+  onboarding_status: string;
+  facebook_user_id: string | null;
+  facebook_user_name: string | null;
+  facebook_page_count: number | null;
+  facebook_selected_page_id: string | null;
+  facebook_selected_page_name: string | null;
+  facebook_page_access_token: string | null;
+  facebook_page_selected_at: string | null;
+  facebook_connected_at: string | null;
+};
+
 export async function upsertStripeOnboarding(record: OnboardingRecord) {
   const supabase = getSupabaseAdmin();
 
@@ -26,6 +46,7 @@ export async function attachFacebookConnection(input: {
   facebookUserId?: string | null;
   facebookUserName?: string | null;
   facebookPageCount?: number;
+  selectedPage?: FacebookSelectionInput | null;
 }) {
   const supabase = getSupabaseAdmin();
 
@@ -33,6 +54,7 @@ export async function attachFacebookConnection(input: {
     return;
   }
 
+  const hasSelectedPage = Boolean(input.selectedPage?.pageId);
   const { error } = await supabase
     .from("customer_onboarding")
     .update({
@@ -40,13 +62,37 @@ export async function attachFacebookConnection(input: {
       facebook_user_name: input.facebookUserName ?? null,
       facebook_page_count: input.facebookPageCount ?? 0,
       facebook_connected_at: new Date().toISOString(),
-      onboarding_status: input.facebookPageCount && input.facebookPageCount > 0
-        ? "facebook-connected"
-        : "facebook-connected-no-pages",
+      facebook_selected_page_id: input.selectedPage?.pageId ?? null,
+      facebook_selected_page_name: input.selectedPage?.pageName ?? null,
+      facebook_page_access_token: input.selectedPage?.pageAccessToken ?? null,
+      facebook_page_selected_at: hasSelectedPage ? new Date().toISOString() : null,
+      onboarding_status: hasSelectedPage
+        ? "facebook-page-linked"
+        : input.facebookPageCount && input.facebookPageCount > 0
+          ? "facebook-connected"
+          : "facebook-connected-no-pages",
     })
     .eq("customer_email", input.customerEmail);
 
   if (error) {
     throw new Error(`Supabase Facebook update failed: ${error.message}`);
   }
+}
+
+export async function fetchCustomerFacebookConnection(customerEmail: string) {
+  const supabase = getSupabaseAdmin();
+
+  const { data, error } = await supabase
+    .from("customer_onboarding")
+    .select(
+      "customer_email, customer_name, onboarding_status, facebook_user_id, facebook_user_name, facebook_page_count, facebook_selected_page_id, facebook_selected_page_name, facebook_page_access_token, facebook_page_selected_at, facebook_connected_at",
+    )
+    .eq("customer_email", customerEmail)
+    .maybeSingle<CustomerFacebookRecord>();
+
+  if (error) {
+    throw new Error(`Supabase Facebook lookup failed: ${error.message}`);
+  }
+
+  return data ?? null;
 }

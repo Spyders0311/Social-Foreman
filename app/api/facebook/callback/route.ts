@@ -28,27 +28,49 @@ export async function GET(request: Request) {
   }
 
   try {
-    const accessToken = await exchangeFacebookCodeForToken(origin, code);
+    const accessToken = await exchangeFacebookCodeForToken(origin, code, customerEmail);
     const profile = await fetchFacebookProfile(accessToken);
 
     try {
       const pages = await fetchFacebookPages(accessToken);
       const pageCount = String(pages.length);
+      const selectedPage = pages.length === 1
+        ? {
+            pageId: pages[0].id,
+            pageName: pages[0].name,
+            pageAccessToken: pages[0].accessToken,
+          }
+        : null;
 
       await attachFacebookConnection({
         customerEmail,
         facebookUserId: profile.id,
         facebookUserName: profile.name,
         facebookPageCount: pages.length,
+        selectedPage,
       });
 
       console.log("Facebook token exchange succeeded", {
         facebookUserId: profile.id,
         facebookUserName: profile.name,
         pageCount: pages.length,
+        selectedPageId: selectedPage?.pageId ?? null,
       });
 
-      return Response.redirect(`${origin}/success?facebook=connected&pages=${pageCount}`, 302);
+      const redirectParams = new URLSearchParams({
+        facebook: selectedPage ? "page_linked" : "connected",
+        pages: pageCount,
+      });
+
+      if (selectedPage?.pageId) {
+        redirectParams.set("selectedPageId", selectedPage.pageId);
+      }
+
+      if (selectedPage?.pageName) {
+        redirectParams.set("selectedPageName", selectedPage.pageName);
+      }
+
+      return Response.redirect(`${origin}/success?${redirectParams.toString()}`, 302);
     } catch (pageError) {
       console.log("Facebook login succeeded but page fetch failed", {
         facebookUserId: profile.id,

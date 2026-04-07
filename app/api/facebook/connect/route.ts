@@ -11,7 +11,8 @@ export async function GET(request: Request) {
   try {
     const requestUrl = new URL(request.url);
     const state = requestUrl.searchParams.get("state") ?? crypto.randomUUID();
-    const redirectUrl = buildFacebookOAuthUrl(getOrigin(request), state);
+    const email = requestUrl.searchParams.get("email");
+    const redirectUrl = buildFacebookOAuthUrl(getOrigin(request), state, email);
 
     return Response.redirect(redirectUrl, 302);
   } catch (error) {

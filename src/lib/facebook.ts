@@ -12,8 +12,19 @@ type FacebookMeResponse = {
 };
 
 type FacebookPagesResponse = {
-  data?: Array<{ id: string; name: string }>;
+  data?: Array<{ id: string; name: string; access_token?: string }>;
   error?: { message?: string };
+};
+
+type FacebookPostResponse = {
+  id?: string;
+  error?: { message?: string };
+};
+
+export type FacebookPage = {
+  id: string;
+  name: string;
+  accessToken: string | null;
 };
 
 export function getFacebookAppId() {
@@ -36,14 +47,40 @@ export function getFacebookAppSecret() {
   return appSecret;
 }
 
-export function getFacebookRedirectUri(origin: string) {
-  return `${origin}/api/facebook/callback`;
+export function getFacebookRedirectUri(origin: string, customerEmail?: string | null) {
+  const redirectUrl = new URL(`${origin}/api/facebook/callback`);
+
+  if (customerEmail) {
+    redirectUrl.searchParams.set("email", customerEmail);
+  }
+
+  return redirectUrl.toString();
 }
 
-export function buildFacebookOAuthUrl(origin: string, state: string) {
+export function getFacebookTestPostSecret() {
+  const secret = process.env.FACEBOOK_TEST_POST_SECRET;
+
+  if (!secret) {
+    throw new Error("Missing FACEBOOK_TEST_POST_SECRET");
+  }
+
+  return secret;
+}
+
+export function getFacebookTestPostAllowedEmail() {
+  const email = process.env.FACEBOOK_TEST_POST_ALLOWED_EMAIL;
+
+  if (!email) {
+    throw new Error("Missing FACEBOOK_TEST_POST_ALLOWED_EMAIL");
+  }
+
+  return email.trim().toLowerCase();
+}
+
+export function buildFacebookOAuthUrl(origin: string, state: string, customerEmail?: string | null) {
   const params = new URLSearchParams({
     client_id: getFacebookAppId(),
-    redirect_uri: getFacebookRedirectUri(origin),
+    redirect_uri: getFacebookRedirectUri(origin, customerEmail),
     state,
     scope: [
       "pages_show_list",
@@ -56,11 +93,11 @@ export function buildFacebookOAuthUrl(origin: string, state: string) {
   return `https://www.facebook.com/v22.0/dialog/oauth?${params.toString()}`;
 }
 
-export async function exchangeFacebookCodeForToken(origin: string, code: string) {
+export async function exchangeFacebookCodeForToken(origin: string, code: string, customerEmail?: string | null) {
   const params = new URLSearchParams({
     client_id: getFacebookAppId(),
     client_secret: getFacebookAppSecret(),
-    redirect_uri: getFacebookRedirectUri(origin),
+    redirect_uri: getFacebookRedirectUri(origin, customerEmail),
     code,
   });
 
@@ -90,7 +127,7 @@ export async function fetchFacebookProfile(accessToken: string) {
   };
 }
 
-export async function fetchFacebookPages(accessToken: string) {
+export async function fetchFacebookPages(accessToken: string): Promise<FacebookPage[]> {
   const response = await fetch(
     `https://graph.facebook.com/v22.0/me/accounts?access_token=${encodeURIComponent(accessToken)}`,
   );
@@ -100,5 +137,34 @@ export async function fetchFacebookPages(accessToken: string) {
     throw new Error(data.error?.message ?? "Unable to fetch Facebook pages.");
   }
 
-  return data.data ?? [];
+  return (data.data ?? []).map((page) => ({
+    id: page.id,
+    name: page.name,
+    accessToken: page.access_token ?? null,
+  }));
+}
+
+export async function publishFacebookPagePost(input: {
+  pageId: string;
+  pageAccessToken: string;
+  message: string;
+}) {
+  const response = await fetch(`https://graph.facebook.com/v22.0/${encodeURIComponent(input.pageId)}/feed`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      message: input.message,
+      access_token: input.pageAccessToken,
+    }),
+  });
+
+  const data = (await response.json()) as FacebookPostResponse;
+
+  if (!response.ok || !data.id) {
+    throw new Error(data.error?.message ?? "Unable to publish Facebook page post.");
+  }
+
+  return data.id;
 }
