@@ -37,25 +37,31 @@ export function buildWelcomeEmail(record: OnboardingRecord) {
   const recipientName = record.customerName ?? "there";
 
   return {
-    subject: "Welcome to Social Foreman - next steps",
+    subject: "Welcome to Social Foreman - here’s what happens next",
     text: `Hi ${recipientName},
 
-Welcome to Social Foreman. Your subscription is active, and we’re ready to get your onboarding moving.
+Thanks for signing up for Social Foreman.
 
-Here’s what happens next:
-1. Reply with your business name, service area, and core services.
-2. Make sure you have admin access to your Facebook Business Page.
-3. Watch for our Facebook connection instructions so we can prepare your posting workflow.
-4. We’ll build your first batch of content after we get your details.
+You’re all set on the payment side. Now we just need a few simple things from you so we can get your content moving.
 
-To keep this moving quickly, reply with:
+Reply to this email with:
 - Business name
-- City / service area
-- Main services
-- Best email + phone for customer-facing content
+- City or service area
+- Main services you want to promote
+- Best phone number for customers to call
 - Website URL
 - Facebook Page URL
-- Any promos or offers you want us to highlight
+- Any current offer or promo you want us to mention
+
+Also, please make sure you can log into the Facebook account that manages your business page. We’ll help with that part next.
+
+What happens after you reply:
+1. We review your business details
+2. We help get your Facebook page connected
+3. We build your first round of posts
+4. You review it and we tighten it up if needed
+
+Keep it simple. Even a rough reply is fine. We’ll help clean it up from there.
 
 Thanks,
 Social Foreman`,
@@ -64,20 +70,23 @@ Social Foreman`,
 
 export function buildOwnerNotificationEmail(record: OnboardingRecord) {
   return {
-    subject: `New Social Foreman signup: ${record.customerEmail ?? "unknown email"}`,
-    text: `A new Social Foreman subscription was created.
+    subject: `New signup: ${record.customerName ?? record.customerEmail ?? "Social Foreman customer"}`,
+    text: `New Social Foreman signup
 
-Customer email: ${record.customerEmail ?? "unknown"}
-Customer name: ${record.customerName ?? "unknown"}
-Stripe customer ID: ${record.customerId ?? "unknown"}
-Subscription ID: ${record.subscriptionId ?? "unknown"}
-Status: ${record.status}
-Created at: ${record.createdAt}
+Customer
+- Name: ${record.customerName ?? "unknown"}
+- Email: ${record.customerEmail ?? "unknown"}
 
-Next actions:
-- confirm welcome email sent
-- collect business details
-- collect Facebook Page URL and access
-- begin onboarding workflow`,
+Subscription
+- Status: ${record.status}
+- Stripe customer ID: ${record.customerId ?? "unknown"}
+- Subscription ID: ${record.subscriptionId ?? "unknown"}
+- Event time: ${record.createdAt}
+
+Next steps
+1. Confirm welcome email was sent
+2. Collect business details
+3. Collect Facebook Page URL and admin access
+4. Start first content batch`,
   };
 }
