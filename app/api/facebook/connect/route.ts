@@ -10,10 +10,12 @@ function getOrigin(request: Request) {
 export async function GET(request: Request) {
   try {
     const requestUrl = new URL(request.url);
-    const email = requestUrl.searchParams.get("email");
     const statePayload = {
       nonce: crypto.randomUUID(),
-      email,
+      onboardingId: requestUrl.searchParams.get("onboardingId"),
+      stripeCustomerId: requestUrl.searchParams.get("stripeCustomerId"),
+      stripeSubscriptionId: requestUrl.searchParams.get("stripeSubscriptionId"),
+      email: requestUrl.searchParams.get("email"),
     };
     const state = Buffer.from(JSON.stringify(statePayload)).toString("base64url");
     const redirectUrl = buildFacebookOAuthUrl(getOrigin(request), state);

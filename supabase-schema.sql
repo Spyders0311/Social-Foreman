@@ -14,6 +14,8 @@ create table if not exists public.customer_onboarding (
   facebook_page_access_token text,
   facebook_page_selected_at timestamptz,
   facebook_connected_at timestamptz,
+  facebook_long_lived_user_access_token text,
+  facebook_long_lived_user_token_expires_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -22,7 +24,9 @@ alter table public.customer_onboarding
   add column if not exists facebook_selected_page_id text,
   add column if not exists facebook_selected_page_name text,
   add column if not exists facebook_page_access_token text,
-  add column if not exists facebook_page_selected_at timestamptz;
+  add column if not exists facebook_page_selected_at timestamptz,
+  add column if not exists facebook_long_lived_user_access_token text,
+  add column if not exists facebook_long_lived_user_token_expires_at timestamptz;
 
 create or replace function public.set_updated_at()
 returns trigger

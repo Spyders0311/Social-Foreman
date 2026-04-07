@@ -6,18 +6,9 @@ import {
   buildOwnerNotificationEmail,
   buildWelcomeEmail,
 } from "../../../../src/lib/onboarding";
+import { getStripeClient } from "../../../../src/lib/stripe";
 
 export const runtime = "nodejs";
-
-function getStripeClient() {
-  const secretKey = process.env.STRIPE_SECRET_KEY;
-
-  if (!secretKey) {
-    throw new Error("Missing STRIPE_SECRET_KEY");
-  }
-
-  return new Stripe(secretKey);
-}
 
 function getWebhookSecret() {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -45,14 +36,13 @@ export async function POST(request: Request) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         const record = buildCheckoutRecord(event, session);
+        const savedRecord = await upsertStripeOnboarding(record);
         const ownerEmail = buildOwnerNotificationEmail(record);
         const welcomeEmail = buildWelcomeEmail(record);
         const notifyAddresses = (process.env.ONBOARDING_NOTIFICATION_EMAIL ?? "")
           .split(",")
           .map((value) => value.trim())
           .filter(Boolean);
-
-        await upsertStripeOnboarding(record);
 
         for (const notifyAddress of notifyAddresses) {
           await sendEmail({ to: notifyAddress, ...ownerEmail });
@@ -64,7 +54,9 @@ export async function POST(request: Request) {
 
         console.log("Stripe checkout completed:", {
           eventId: event.id,
+          onboardingId: savedRecord.id,
           customerEmail: record.customerEmail,
+          stripeCustomerId: savedRecord.stripe_customer_id,
           subscriptionId: record.subscriptionId,
           onboardingStatus: record.status,
           ownerNotificationRecipients: notifyAddresses.length,

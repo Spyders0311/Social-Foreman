@@ -27,6 +27,11 @@ export type FacebookPage = {
   accessToken: string | null;
 };
 
+export type FacebookUserToken = {
+  accessToken: string;
+  expiresIn: number | null;
+};
+
 export function getFacebookAppId() {
   const appId = process.env.FACEBOOK_APP_ID;
 
@@ -87,7 +92,7 @@ export function buildFacebookOAuthUrl(origin: string, state: string) {
   return `https://www.facebook.com/v22.0/dialog/oauth?${params.toString()}`;
 }
 
-export async function exchangeFacebookCodeForToken(origin: string, code: string) {
+export async function exchangeFacebookCodeForToken(origin: string, code: string): Promise<FacebookUserToken> {
   const params = new URLSearchParams({
     client_id: getFacebookAppId(),
     client_secret: getFacebookAppSecret(),
@@ -102,7 +107,31 @@ export async function exchangeFacebookCodeForToken(origin: string, code: string)
     throw new Error(data.error?.message ?? "Unable to exchange Facebook code for token.");
   }
 
-  return data.access_token;
+  return {
+    accessToken: data.access_token,
+    expiresIn: typeof data.expires_in === "number" ? data.expires_in : null,
+  };
+}
+
+export async function exchangeForLongLivedFacebookToken(accessToken: string): Promise<FacebookUserToken> {
+  const params = new URLSearchParams({
+    grant_type: "fb_exchange_token",
+    client_id: getFacebookAppId(),
+    client_secret: getFacebookAppSecret(),
+    fb_exchange_token: accessToken,
+  });
+
+  const response = await fetch(`https://graph.facebook.com/v22.0/oauth/access_token?${params}`);
+  const data = (await response.json()) as FacebookTokenResponse;
+
+  if (!response.ok || !data.access_token) {
+    throw new Error(data.error?.message ?? "Unable to exchange for a long-lived Facebook token.");
+  }
+
+  return {
+    accessToken: data.access_token,
+    expiresIn: typeof data.expires_in === "number" ? data.expires_in : null,
+  };
 }
 
 export async function fetchFacebookProfile(accessToken: string) {

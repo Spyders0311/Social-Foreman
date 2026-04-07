@@ -1,3 +1,10 @@
+import { fetchFacebookPages } from "../../src/lib/facebook";
+import { resolveSuccessPageContext } from "../../src/lib/success-context";
+
+type SuccessPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
 const nextSteps = [
   {
     title: "Watch for your welcome email",
@@ -26,7 +33,7 @@ const facebookSteps = [
   "Open your Facebook Business Page and confirm you have full admin access.",
   "Make sure the page is published and not restricted unless you intentionally want that.",
   "Keep your page URL handy so you can send it during onboarding.",
-  "When our onboarding email arrives, follow the Facebook connection instructions there so we can request the right permissions.",
+  "When you are ready, hit the Connect Facebook button here so we can request the right permissions.",
 ];
 
 const detailChecklist = [
@@ -39,42 +46,105 @@ const detailChecklist = [
   "Any promos or offers you want us to highlight",
 ];
 
-type SuccessPageProps = {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-};
-
-function getSingleParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
 const defaultTestPostMessage =
   "Social Foreman test post: Facebook page connection is live and server-side publishing is ready for verification.";
 
+function buildFacebookConnectHref(input: {
+  onboardingId?: string | null;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+  customerEmail?: string | null;
+}) {
+  const params = new URLSearchParams();
+
+  if (input.onboardingId) {
+    params.set("onboardingId", input.onboardingId);
+  }
+
+  if (input.stripeCustomerId) {
+    params.set("stripeCustomerId", input.stripeCustomerId);
+  }
+
+  if (input.stripeSubscriptionId) {
+    params.set("stripeSubscriptionId", input.stripeSubscriptionId);
+  }
+
+  if (input.customerEmail) {
+    params.set("email", input.customerEmail);
+  }
+
+  const query = params.toString();
+  return query ? `/api/facebook/connect?${query}` : "/api/facebook/connect";
+}
+
 export default async function SuccessPage({ searchParams }: SuccessPageProps) {
   const params = searchParams ? await searchParams : undefined;
-  const facebookStatus = getSingleParam(params?.facebook);
-  const pagesCount = getSingleParam(params?.pages);
-  const selectedPageId = getSingleParam(params?.selectedPageId);
-  const selectedPageName = getSingleParam(params?.selectedPageName);
-  const customerEmail = "spyders03@gmail.com";
-  const pageReady = facebookStatus === "page_linked";
+  const context = await resolveSuccessPageContext(params);
+  const pageReady = context.facebookStatus === "page_linked";
+  const canRunTestPost = pageReady && context.customerEmail;
+  const canChoosePage =
+    Boolean(context.record?.facebook_long_lived_user_access_token) &&
+    !pageReady &&
+    (context.record?.facebook_page_count ?? 0) > 1;
+
+  let availablePages: Array<{ id: string; name: string; accessToken: string | null }> = [];
+
+  if (canChoosePage && context.record?.facebook_long_lived_user_access_token) {
+    try {
+      availablePages = await fetchFacebookPages(context.record.facebook_long_lived_user_access_token);
+    } catch (error) {
+      console.log("Unable to fetch Facebook pages for selection UI", {
+        onboardingId: context.record.id,
+        reason: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+
+  const connectHref = buildFacebookConnectHref({
+    onboardingId: context.onboardingId,
+    stripeCustomerId: context.stripeCustomerId,
+    stripeSubscriptionId: context.stripeSubscriptionId,
+    customerEmail: context.customerEmail,
+  });
 
   return (
     <div className="min-h-screen bg-[#f7f5ef] text-[#132027]">
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-6 py-12 sm:px-10 lg:px-16">
         <section className="rounded-3xl bg-gradient-to-br from-[#132027] to-[#21414b] p-8 text-[#f8f2e8] sm:p-12">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d7c6a1]">
-            You’re in
-          </p>
-          <h1 className="mt-4 text-4xl font-bold leading-tight sm:text-5xl">
-            Welcome to Social Foreman.
-          </h1>
-          <p className="mt-5 max-w-3xl text-lg text-[#e8dcc9]">
-            Good move. You just took social posting off your plate and gave your business a cleaner path to staying visible online.
-          </p>
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d7c6a1]">
+                You’re in
+              </p>
+              <h1 className="mt-4 text-4xl font-bold leading-tight sm:text-5xl">
+                Welcome to Social Foreman.
+              </h1>
+              <p className="mt-5 max-w-3xl text-lg text-[#e8dcc9]">
+                Good move. You just took social posting off your plate and gave your business a cleaner path to staying visible online.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 lg:items-end">
+              <a
+                href={connectHref}
+                className="inline-flex items-center justify-center rounded-full bg-[#1877f2] px-6 py-3 text-center font-semibold text-white transition hover:bg-[#1669d8]"
+              >
+                Connect Facebook
+              </a>
+              <p className="max-w-xs text-sm leading-6 text-[#d8cec1] lg:text-right">
+                Do this early so page permissions are already squared away when onboarding moves into publishing.
+              </p>
+            </div>
+          </div>
+
           <div className="mt-8 rounded-2xl bg-white/8 p-5 text-sm leading-7 text-[#f6ead8]">
             We’ll guide you through onboarding, collect the details we need, connect Facebook, and get your first round of content moving fast.
           </div>
+
+          {context.checkoutStatus === "success" ? (
+            <div className="mt-6 rounded-2xl border border-white/15 bg-white/10 p-4 text-sm leading-7 text-[#f6ead8]">
+              Your checkout went through successfully. Keep this page handy while you finish the next onboarding steps.
+            </div>
+          ) : null}
         </section>
 
         <section className="grid gap-6 md:grid-cols-2">
@@ -106,55 +176,125 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
         </section>
 
         <section className="rounded-3xl border border-[#d9d2c3] bg-white p-8 sm:p-10">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#846b42]">
-            Facebook connection
-          </p>
-          <h2 className="mt-3 text-3xl font-bold text-[#132027]">
-            Get this ready before onboarding.
-          </h2>
-          <p className="mt-3 max-w-3xl text-lg text-[#405058]">
-            We want the Facebook setup to take minutes, not turn into a scavenger hunt for passwords and page access.
-          </p>
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#846b42]">
+                Facebook connection
+              </p>
+              <h2 className="mt-3 text-3xl font-bold text-[#132027]">
+                Get this ready before onboarding.
+              </h2>
+              <p className="mt-3 max-w-3xl text-lg text-[#405058]">
+                We want the Facebook setup to take minutes, not turn into a scavenger hunt for passwords and page access.
+              </p>
+            </div>
+            <a
+              href={connectHref}
+              className="inline-flex items-center justify-center rounded-full bg-[#1877f2] px-6 py-3 text-center font-semibold text-white transition hover:bg-[#1669d8]"
+            >
+              Connect Facebook Page
+            </a>
+          </div>
 
           {pageReady ? (
             <div className="mt-6 rounded-2xl border border-[#b7d5c2] bg-[#edf7f0] p-4 text-[#214b33]">
-              Facebook is fully linked and ready for page-level publishing. Connected page: {selectedPageName ?? "your page"}{selectedPageId ? ` (${selectedPageId})` : ""}.
+              Facebook is fully linked and ready for page-level publishing. Connected page: {context.selectedPageName ?? "your page"}
+              {context.selectedPageId ? ` (${context.selectedPageId})` : ""}.
             </div>
-          ) : facebookStatus === "connected" ? (
+          ) : context.facebookStatus === "select_page" ? (
             <div className="mt-6 rounded-2xl border border-[#b7d5c2] bg-[#edf7f0] p-4 text-[#214b33]">
-              Facebook login worked, and we found {pagesCount ?? "some"} page connection option{pagesCount === "1" ? "" : "s"}. If there is exactly one page, we now auto-link it. If there are multiple pages, page picking still needs its next UI pass.
+              Facebook login worked. We found multiple Pages for this account, so choose the one Social Foreman should publish to.
             </div>
-          ) : facebookStatus === "connected_no_pages" ? (
+          ) : context.facebookStatus === "connected" ? (
+            <div className="mt-6 rounded-2xl border border-[#b7d5c2] bg-[#edf7f0] p-4 text-[#214b33]">
+              Facebook login worked, and we found {context.pagesCount ?? "some"} page connection option{context.pagesCount === "1" ? "" : "s"}. If there is exactly one page, we auto-link it. If there are multiple pages, choose one below.
+            </div>
+          ) : context.facebookStatus === "connected_no_pages" ? (
             <div className="mt-6 rounded-2xl border border-[#f0d9a6] bg-[#fff8e8] p-4 text-[#6a4c12]">
               Facebook login worked, but we could not fetch any Pages yet. That usually means the app still needs the correct page permissions or review setup.
             </div>
-          ) : facebookStatus === "token_error" ? (
+          ) : context.facebookStatus === "selection_invalid" ? (
+            <div className="mt-6 rounded-2xl border border-[#e3c2b7] bg-[#fff4ef] p-4 text-[#7a3d2b]">
+              That page choice was no longer valid. Pick a page again from the refreshed list.
+            </div>
+          ) : context.facebookStatus === "selection_expired" ? (
+            <div className="mt-6 rounded-2xl border border-[#e3c2b7] bg-[#fff4ef] p-4 text-[#7a3d2b]">
+              The Facebook session we saved is no longer available for page selection. Run Facebook connect again to refresh it.
+            </div>
+          ) : context.facebookStatus === "selection_error" ? (
+            <div className="mt-6 rounded-2xl border border-[#e3c2b7] bg-[#fff4ef] p-4 text-[#7a3d2b]">
+              We couldn’t save the page selection cleanly. Try again, and if it repeats, reconnect Facebook.
+            </div>
+          ) : context.facebookStatus === "token_error" ? (
             <div className="mt-6 rounded-2xl border border-[#e3c2b7] bg-[#fff4ef] p-4 text-[#7a3d2b]">
               Facebook login started, but the token handoff failed. Double-check the Meta app settings and try again.
             </div>
-          ) : facebookStatus === "error" || facebookStatus === "missing_code" ? (
+          ) : context.facebookStatus === "error" || context.facebookStatus === "missing_code" ? (
             <div className="mt-6 rounded-2xl border border-[#e3c2b7] bg-[#fff4ef] p-4 text-[#7a3d2b]">
               Facebook connection did not finish cleanly. No big deal, just try the button again.
             </div>
           ) : null}
 
-          <a
-            href="/api/facebook/connect?email=spyders03@gmail.com"
-            className="mt-6 inline-flex rounded-full bg-[#1877f2] px-6 py-3 font-semibold text-white transition hover:bg-[#1669d8]"
-          >
-            Connect Facebook Page
-          </a>
-
-          {pageReady ? (
+          {availablePages.length > 1 ? (
             <div className="mt-6 rounded-2xl border border-[#d9d2c3] bg-[#f7f5ef] p-5">
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#846b42]">
-                Kyle-only test post
+                Choose the Facebook Page to link
               </p>
               <p className="mt-3 text-sm leading-6 text-[#405058]">
-                This hits the authenticated server-side test endpoint and only works for the allowlisted email configured in env.
+                We only store the selected Page token for publishing. Pick the business page you want us to use.
+              </p>
+              <form action="/api/facebook/select-page" method="POST" className="mt-4 space-y-4">
+                <input type="hidden" name="onboardingId" value={context.onboardingId ?? ""} />
+                <input type="hidden" name="stripeCustomerId" value={context.stripeCustomerId ?? ""} />
+                <input type="hidden" name="stripeSubscriptionId" value={context.stripeSubscriptionId ?? ""} />
+                <input type="hidden" name="customerEmail" value={context.customerEmail ?? ""} />
+                <fieldset className="space-y-3">
+                  {availablePages.map((page) => (
+                    <label key={page.id} className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[#d9d2c3] bg-white px-4 py-4 text-sm text-[#132027]">
+                      <input
+                        type="radio"
+                        name="pageId"
+                        value={page.id}
+                        required
+                        defaultChecked={page.id === context.selectedPageId}
+                        className="mt-1"
+                      />
+                      <span>
+                        <span className="block font-semibold">{page.name}</span>
+                        <span className="block text-xs text-[#5c6a70]">Page ID: {page.id}</span>
+                      </span>
+                    </label>
+                  ))}
+                </fieldset>
+                <button
+                  type="submit"
+                  className="inline-flex rounded-full bg-[#132027] px-5 py-3 font-semibold text-[#f8f2e8] transition hover:bg-[#21414b]"
+                >
+                  Save selected page
+                </button>
+              </form>
+            </div>
+          ) : null}
+
+          {!context.customerEmail ? (
+            <div className="mt-6 rounded-2xl border border-[#f0d9a6] bg-[#fff8e8] p-4 text-[#6a4c12]">
+              We could not confirm the customer email on this success-page visit, so this page can still start Facebook auth but cannot unlock the internal test-post tool until the onboarding record is identified.
+            </div>
+          ) : null}
+
+          {canRunTestPost ? (
+            <div className="mt-6 rounded-2xl border border-[#d9d2c3] bg-[#f7f5ef] p-5">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#846b42]">
+                Internal Facebook test post
+              </p>
+              <p className="mt-3 text-sm leading-6 text-[#405058]">
+                This hits the authenticated server-side test endpoint for the linked onboarding record and returns a clean in-app result page instead of raw JSON.
               </p>
               <form action="/api/facebook/test-post" method="POST" className="mt-4 space-y-4">
-                <input type="hidden" name="customerEmail" value={customerEmail} />
+                <input type="hidden" name="onboardingId" value={context.onboardingId ?? ""} />
+                <input type="hidden" name="stripeCustomerId" value={context.stripeCustomerId ?? ""} />
+                <input type="hidden" name="stripeSubscriptionId" value={context.stripeSubscriptionId ?? ""} />
+                <input type="hidden" name="customerEmail" value={context.customerEmail ?? ""} />
                 <div>
                   <label htmlFor="message" className="text-sm font-medium text-[#132027]">
                     Test message
