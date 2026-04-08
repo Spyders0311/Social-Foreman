@@ -191,7 +191,7 @@ export async function generateReviewedWeeklyDraftBatch(
       postCount,
       cadenceDays: options.cadenceDays ?? [],
       cadenceLabel: options.cadenceLabel ?? null,
-      goal: `Generate ${postCount} ready-to-publish weekly Facebook posts.`,
+      goal: `Generate ${postCount} ready-to-publish weekly Facebook posts and return valid JSON.`,
     }),
   );
 
