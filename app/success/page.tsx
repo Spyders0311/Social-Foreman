@@ -1,7 +1,7 @@
 import {
   BUSINESS_TONES,
   BUSINESS_TYPES,
-  generateFirstPostDraft,
+  generateDraftBatch,
 } from "../../src/lib/business-profile";
 import { fetchFacebookPages } from "../../src/lib/facebook";
 import { resolveSuccessPageContext } from "../../src/lib/success-context";
@@ -19,17 +19,17 @@ const nextSteps = [
   {
     title: "Connect Facebook",
     description:
-      "Link the exact Facebook Business Page we should publish to so each customer record knows where content belongs.",
+      "Link the exact Facebook Business Page we should publish to so each customer record knows where approved content belongs.",
   },
   {
-    title: "Review your first draft",
+    title: "Review your starter batch",
     description:
-      "We generate a starter post inside the app as soon as your profile is complete, so you can tighten tone and offers fast.",
+      "We generate a small batch of starter posts from your profile so you can review direction, tone, and local relevance fast.",
   },
   {
-    title: "Approve your first batch",
+    title: "Approve refined posting",
     description:
-      "Once the profile and page are in place, we can turn that data into your first month of content much faster.",
+      "Once your profile and page are in place, Social Foreman can refine the drafts and keep your Monday, Wednesday, and Friday posting rhythm moving.",
   },
 ];
 
@@ -74,7 +74,7 @@ function getStatusMessage(flowStatus: string | null, missing: string | null) {
     return {
       tone: "success",
       title: "Business profile saved",
-      body: "We stored the onboarding details on your customer record and generated a first-post draft from them.",
+      body: "We stored the onboarding details and generated a starter batch of review drafts for this customer record.",
     } as const;
   }
 
@@ -99,12 +99,30 @@ function getStatusMessage(flowStatus: string | null, missing: string | null) {
   return null;
 }
 
+function parseDraftBatch(value: string | null) {
+  if (!value) {
+    return [] as Array<{
+      headline: string;
+      body: string;
+      callToAction: string;
+      hashtags: string[];
+    }>;
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export default async function SuccessPage({ searchParams }: SuccessPageProps) {
   const params = searchParams ? await searchParams : undefined;
   const context = await resolveSuccessPageContext(params);
   const pageReady = context.facebookStatus === "page_linked";
   const businessProfileReady = Boolean(context.record?.business_profile_completed_at);
-  const readyForDraft = businessProfileReady && pageReady;
+  const batchReady = Boolean(context.record?.draft_batch_generated_at);
   const canChoosePage =
     Boolean(context.record?.facebook_long_lived_user_access_token) &&
     !pageReady &&
@@ -130,30 +148,31 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
     customerEmail: context.customerEmail,
   });
 
-  const generatedDraft = context.record
-    ? {
-        headline: context.record.first_post_draft_headline,
-        body: context.record.first_post_draft_body,
-        callToAction: context.record.first_post_draft_call_to_action,
-        hashtags: context.record.first_post_draft_hashtags ?? [],
-      }
-    : null;
+  const generatedBatch = parseDraftBatch(context.record?.draft_batch_json ?? null);
 
-  const previewDraft = !generatedDraft?.headline && context.record?.business_name && context.record?.business_type && context.record?.service_area && context.record?.brand_tone && context.record?.contact_phone
-    ? generateFirstPostDraft({
-        businessName: context.record.business_name,
-        businessType: context.record.business_type,
-        serviceArea: context.record.service_area,
-        primaryServices: context.record.primary_services ?? [],
-        phone: context.record.contact_phone,
-        websiteUrl: context.record.website_url ?? "",
-        facebookPageUrl: context.record.facebook_page_url ?? "",
-        offerSummary: context.record.offer_summary ?? "",
-        differentiators: context.record.differentiators ?? "",
-        tone: context.record.brand_tone,
-        audienceNotes: context.record.audience_notes ?? "",
-      })
-    : null;
+  const previewBatch =
+    !generatedBatch.length &&
+    context.record?.business_name &&
+    context.record?.business_type &&
+    context.record?.service_area &&
+    context.record?.brand_tone &&
+    context.record?.contact_phone
+      ? generateDraftBatch({
+          businessName: context.record.business_name,
+          businessType: context.record.business_type,
+          serviceArea: context.record.service_area,
+          primaryServices: context.record.primary_services ?? [],
+          phone: context.record.contact_phone,
+          websiteUrl: context.record.website_url ?? "",
+          facebookPageUrl: context.record.facebook_page_url ?? "",
+          offerSummary: context.record.offer_summary ?? "",
+          differentiators: context.record.differentiators ?? "",
+          tone: context.record.brand_tone,
+          audienceNotes: context.record.audience_notes ?? "",
+        }).drafts
+      : [];
+
+  const draftsToRender = generatedBatch.length ? generatedBatch : previewBatch;
 
   const statusMessage = getStatusMessage(
     context.onboardingFlowStatus,
@@ -173,7 +192,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
                 Welcome to Social Foreman.
               </h1>
               <p className="mt-5 max-w-3xl text-lg text-[#e8dcc9]">
-                Your checkout is done. Now let’s turn that into a usable customer profile, attach the right Facebook page, and generate the first post draft from real business data.
+                Your checkout is done. Now let’s turn that into a usable business profile, connect the right Facebook page, and generate a small starter batch of posts for review before anything gets published.
               </p>
             </div>
             <div className="flex flex-col gap-3 lg:items-end">
@@ -184,13 +203,13 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
                 Connect Facebook
               </a>
               <p className="max-w-xs text-sm leading-6 text-[#d8cec1] lg:text-right">
-                The app stores the selected page directly on this onboarding record, so future publishing knows exactly where to post.
+                The selected page is stored on this onboarding record so approved content can be routed to the right publishing destination.
               </p>
             </div>
           </div>
 
           <div className="mt-8 rounded-2xl bg-white/8 p-5 text-sm leading-7 text-[#f6ead8]">
-            Complete the business profile form below, then link Facebook. As soon as those basics are in place, the app can produce a usable first-post draft without waiting on manual back-and-forth.
+            Fill out the business profile below, then link Facebook. The in-app rule-based generator is used as a starter to create a review batch, not as the final promise to the customer.
           </div>
 
           {statusMessage ? (
@@ -229,7 +248,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
               </p>
               <h2 className="text-3xl font-bold text-[#132027]">Capture the business context once.</h2>
               <p className="text-lg text-[#405058]">
-                This saves directly to the Supabase onboarding record tied to your checkout, so Social Foreman can generate drafts and map them to the right connected page.
+                This saves directly to the onboarding record tied to checkout so Social Foreman can generate a relevant starter batch, refine it, and map publishing to the right connected page.
               </p>
             </div>
 
@@ -375,7 +394,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
                 type="submit"
                 className="inline-flex rounded-full bg-[#132027] px-6 py-3 font-semibold text-[#f8f2e8] transition hover:bg-[#21414b]"
               >
-                Save onboarding profile
+                Save profile and generate starter batch
               </button>
             </form>
           </section>
@@ -391,7 +410,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
                     Link the publishing destination.
                   </h2>
                   <p className="mt-3 text-lg text-[#405058]">
-                    The selected page is saved on the same customer onboarding record as the business profile and generated draft.
+                    The selected page is saved on the same customer onboarding record as the business profile and starter batch so reviewed posts can be routed correctly.
                   </p>
                 </div>
                 <a
@@ -473,48 +492,42 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
 
             <section className="rounded-3xl bg-[#132027] p-8 text-[#f8f2e8] sm:p-10">
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#d7c6a1]">
-                First-post draft
+                Starter batch preview
               </p>
               <h2 className="mt-3 text-3xl font-bold">
-                {readyForDraft ? "Your onboarding draft is ready." : "Draft generation unlocks as onboarding fills in."}
+                {batchReady ? "Your review batch is ready." : "Starter batch unlocks as onboarding fills in."}
               </h2>
               <p className="mt-4 text-[#d8cec1]">
-                This is generated locally from the structured business profile in Supabase. No external content API is required.
+                These are internal first-pass drafts generated from your structured profile. They are meant to speed up review and refinement before scheduled posting, not serve as the final customer-facing promise on their own.
               </p>
 
-              {generatedDraft?.headline ? (
-                <div className="mt-6 space-y-4 rounded-2xl bg-white/8 p-5">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.15em] text-[#d7c6a1]">Headline</p>
-                    <p className="mt-1 text-xl font-semibold">{generatedDraft.headline}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.15em] text-[#d7c6a1]">Body</p>
-                    <p className="mt-1 whitespace-pre-wrap text-[#f6ead8]">{generatedDraft.body}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.15em] text-[#d7c6a1]">Call to action</p>
-                    <p className="mt-1 text-[#f6ead8]">{generatedDraft.callToAction}</p>
-                  </div>
-                  {generatedDraft.hashtags.length ? (
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.15em] text-[#d7c6a1]">Hashtags</p>
-                      <p className="mt-2 text-[#f6ead8]">{generatedDraft.hashtags.map((tag) => `#${tag}`).join(" ")}</p>
+              {draftsToRender.length ? (
+                <div className="mt-6 space-y-4">
+                  {draftsToRender.slice(0, 4).map((draft, index) => (
+                    <div key={`${draft.headline}-${index}`} className="rounded-2xl bg-white/8 p-5">
+                      <p className="text-xs uppercase tracking-[0.15em] text-[#d7c6a1]">Draft {index + 1}</p>
+                      <p className="mt-2 text-xl font-semibold">{draft.headline}</p>
+                      <p className="mt-3 whitespace-pre-wrap text-[#f6ead8]">{draft.body}</p>
+                      <p className="mt-3 text-sm text-[#f6ead8]"><span className="font-semibold">CTA:</span> {draft.callToAction}</p>
+                      {draft.hashtags.length ? (
+                        <p className="mt-3 text-sm text-[#f6ead8]">{draft.hashtags.map((tag: string) => `#${tag}`).join(" ")}</p>
+                      ) : null}
                     </div>
-                  ) : null}
+                  ))}
                 </div>
-              ) : previewDraft ? (
+              ) : businessProfileReady ? (
                 <div className="mt-6 rounded-2xl border border-white/15 bg-white/8 p-5 text-sm text-[#f6ead8]">
-                  Your saved business info is enough to generate a draft preview, but it has not been stored yet. Save the onboarding form again to lock it onto the customer record.
+                  Your saved business info is enough to create a starter batch preview, but it has not been stored yet. Save the onboarding form again to lock it onto the customer record.
                 </div>
               ) : (
                 <div className="mt-6 rounded-2xl border border-white/15 bg-white/8 p-5 text-sm text-[#f6ead8]">
-                  Complete the business profile form to generate a first draft. Link Facebook too if you want the record marked ready for publishing.
+                  Complete the business profile form to generate your first review batch. Link Facebook too if you want the record fully ready for publishing.
                 </div>
               )}
 
               <div className="mt-6 grid gap-3 text-sm text-[#d8cec1]">
                 <div className="rounded-2xl bg-white/8 px-4 py-3">Business profile: {businessProfileReady ? "saved" : "not saved yet"}</div>
+                <div className="rounded-2xl bg-white/8 px-4 py-3">Draft batch: {batchReady ? "generated for review" : "not generated yet"}</div>
                 <div className="rounded-2xl bg-white/8 px-4 py-3">Facebook page: {pageReady ? context.selectedPageName ?? "linked" : "not linked yet"}</div>
                 <div className="rounded-2xl bg-white/8 px-4 py-3">Onboarding status: {context.onboardingStatus ?? "unknown"}</div>
               </div>

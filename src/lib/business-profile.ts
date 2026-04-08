@@ -37,6 +37,11 @@ export type BusinessProfileDraft = {
   hashtags: string[];
 };
 
+export type BusinessProfileDraftBatch = {
+  drafts: BusinessProfileDraft[];
+  fallbackUsed: boolean;
+};
+
 function sanitizeLine(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
@@ -101,15 +106,16 @@ function buildHashtag(value: string) {
     .join("");
 }
 
+function buildTonePrefix(tone: string) {
+  if (tone.toLowerCase().includes("friendly")) return "Hey neighbors";
+  if (tone.toLowerCase().includes("bold")) return "Need it fixed fast?";
+  if (tone.toLowerCase().includes("educational")) return "Quick homeowner tip";
+  return "When you need a crew you can trust";
+}
+
 export function generateFirstPostDraft(profile: BusinessProfileInput): BusinessProfileDraft {
   const servicesLine = buildServiceList(profile.primaryServices);
-  const tonePrefix = profile.tone.toLowerCase().includes("friendly")
-    ? "Hey neighbors"
-    : profile.tone.toLowerCase().includes("bold")
-      ? "Need it fixed fast?"
-      : profile.tone.toLowerCase().includes("educational")
-        ? "Quick homeowner tip"
-        : "When you need a crew you can trust";
+  const tonePrefix = buildTonePrefix(profile.tone);
 
   const offerSentence = profile.offerSummary
     ? `Right now we're highlighting ${profile.offerSummary}.`
@@ -131,5 +137,54 @@ export function generateFirstPostDraft(profile: BusinessProfileInput): BusinessP
       .map(buildHashtag)
       .filter(Boolean)
       .slice(0, 5),
+  };
+}
+
+export function generateDraftBatch(profile: BusinessProfileInput, count = 4): BusinessProfileDraftBatch {
+  const safeCount = Math.max(1, Math.min(count, 6));
+  const servicesLine = buildServiceList(profile.primaryServices);
+  const primaryService = profile.primaryServices[0] ?? profile.businessType.toLowerCase();
+  const secondaryService = profile.primaryServices[1] ?? profile.primaryServices[0] ?? "service work";
+  const tonePrefix = buildTonePrefix(profile.tone);
+  const differentiatorLine = profile.differentiators
+    ? `What makes ${profile.businessName} different is ${profile.differentiators}.`
+    : `${profile.businessName} focuses on showing up on time, communicating clearly, and doing clean work.`;
+  const offerLine = profile.offerSummary
+    ? `This week we're featuring ${profile.offerSummary}.`
+    : `We keep ${profile.serviceArea} covered for ${servicesLine}.`;
+  const audienceLine = profile.audienceNotes
+    ? `Built for ${profile.audienceNotes} across ${profile.serviceArea}.`
+    : `Built for homeowners and local property managers across ${profile.serviceArea}.`;
+
+  const concepts: BusinessProfileDraft[] = [
+    {
+      headline: `${profile.businessName} helps ${profile.serviceArea} stay ahead of ${primaryService}`,
+      body: `${tonePrefix} in ${profile.serviceArea}, ${profile.businessName} is your local team for ${servicesLine}. ${offerLine} ${differentiatorLine}`,
+      callToAction: `Message us or call ${profile.phone} to get on the schedule${profile.websiteUrl ? `, or visit ${profile.websiteUrl}` : ""}.`,
+      hashtags: [profile.businessName, profile.serviceArea, primaryService, profile.businessType].map(buildHashtag).filter(Boolean).slice(0, 5),
+    },
+    {
+      headline: `Local ${profile.businessType.toLowerCase()} advice from ${profile.businessName}`,
+      body: `Quick homeowner tip for ${profile.serviceArea}: small issues with ${primaryService} can turn into expensive repairs when ignored. ${profile.businessName} helps local customers fix problems early and keep things running right. ${audienceLine}`,
+      callToAction: `Need someone to take a look? Call ${profile.phone}${profile.websiteUrl ? ` or book at ${profile.websiteUrl}` : ""}.`,
+      hashtags: [profile.businessName, profile.serviceArea, "homeowner tips", primaryService].map(buildHashtag).filter(Boolean).slice(0, 5),
+    },
+    {
+      headline: `Why ${profile.serviceArea} customers choose ${profile.businessName}`,
+      body: `${profile.businessName} handles ${servicesLine} for customers across ${profile.serviceArea}. ${differentiatorLine} We build posts like this around the real reasons customers keep referring us.`,
+      callToAction: `If you need help with ${secondaryService}, call ${profile.phone}${profile.websiteUrl ? ` or visit ${profile.websiteUrl}` : ""}.`,
+      hashtags: [profile.businessName, profile.serviceArea, secondaryService, "local business"].map(buildHashtag).filter(Boolean).slice(0, 5),
+    },
+    {
+      headline: `${profile.businessName} is booking jobs across ${profile.serviceArea}`,
+      body: `If you need ${servicesLine} in ${profile.serviceArea}, ${profile.businessName} is ready to help. ${offerLine} ${audienceLine}`,
+      callToAction: `Call ${profile.phone} today to get a quote${profile.websiteUrl ? ` or learn more at ${profile.websiteUrl}` : ""}.`,
+      hashtags: [profile.businessName, profile.serviceArea, servicesLine, "book now"].map(buildHashtag).filter(Boolean).slice(0, 5),
+    },
+  ];
+
+  return {
+    drafts: concepts.slice(0, safeCount),
+    fallbackUsed: true,
   };
 }

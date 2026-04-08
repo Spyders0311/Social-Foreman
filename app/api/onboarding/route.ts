@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  generateDraftBatch,
   generateFirstPostDraft,
   normalizeBusinessProfileInput,
   validateBusinessProfile,
@@ -77,12 +78,15 @@ export async function POST(request: Request) {
     );
   }
 
-  const draft = generateFirstPostDraft(profile);
+  const draftBatchResult = generateDraftBatch(profile, 4);
+  const firstDraft = draftBatchResult.drafts[0] ?? generateFirstPostDraft(profile);
 
   await saveBusinessProfile({
     onboardingId: record.id,
     profile,
-    firstPostDraft: draft,
+    firstPostDraft: firstDraft,
+    draftBatch: draftBatchResult.drafts,
+    draftGenerationMethod: draftBatchResult.fallbackUsed ? "rule-based-fallback" : "primary",
   });
 
   return NextResponse.redirect(

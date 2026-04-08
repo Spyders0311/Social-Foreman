@@ -33,6 +33,9 @@ export type CustomerFacebookRecord = {
   first_post_draft_call_to_action: string | null;
   first_post_draft_hashtags: string[] | null;
   first_post_draft_generated_at: string | null;
+  draft_batch_json: string | null;
+  draft_batch_generated_at: string | null;
+  draft_generation_method: string | null;
   facebook_user_id: string | null;
   facebook_user_name: string | null;
   facebook_page_count: number | null;
@@ -55,7 +58,7 @@ export type CustomerLookupInput = {
 };
 
 const customerSelectFields =
-  "id, stripe_event_id, stripe_customer_id, stripe_subscription_id, customer_email, customer_name, onboarding_status, business_name, business_type, service_area, primary_services, contact_phone, website_url, facebook_page_url, offer_summary, differentiators, brand_tone, audience_notes, business_profile_completed_at, first_post_draft_headline, first_post_draft_body, first_post_draft_call_to_action, first_post_draft_hashtags, first_post_draft_generated_at, facebook_user_id, facebook_user_name, facebook_page_count, facebook_selected_page_id, facebook_selected_page_name, facebook_page_access_token, facebook_page_selected_at, facebook_connected_at, facebook_long_lived_user_access_token, facebook_long_lived_user_token_expires_at, created_at, updated_at";
+  "id, stripe_event_id, stripe_customer_id, stripe_subscription_id, customer_email, customer_name, onboarding_status, business_name, business_type, service_area, primary_services, contact_phone, website_url, facebook_page_url, offer_summary, differentiators, brand_tone, audience_notes, business_profile_completed_at, first_post_draft_headline, first_post_draft_body, first_post_draft_call_to_action, first_post_draft_hashtags, first_post_draft_generated_at, draft_batch_json, draft_batch_generated_at, draft_generation_method, facebook_user_id, facebook_user_name, facebook_page_count, facebook_selected_page_id, facebook_selected_page_name, facebook_page_access_token, facebook_page_selected_at, facebook_connected_at, facebook_long_lived_user_access_token, facebook_long_lived_user_token_expires_at, created_at, updated_at";
 
 function normalizeLookupInput(input: CustomerLookupInput) {
   return {
@@ -205,6 +208,8 @@ export async function saveBusinessProfile(input: {
   customerEmail?: string | null;
   profile: BusinessProfileInput;
   firstPostDraft: BusinessProfileDraft;
+  draftBatch?: BusinessProfileDraft[];
+  draftGenerationMethod?: string;
 }) {
   const supabase = getSupabaseAdmin();
   const targetRecord = await findCustomerOnboardingRecord(input);
@@ -215,6 +220,7 @@ export async function saveBusinessProfile(input: {
   }
 
   const timestamp = new Date().toISOString();
+  const batch = input.draftBatch?.length ? input.draftBatch : [input.firstPostDraft];
   const { data, error } = await supabase
     .from("customer_onboarding")
     .update({
@@ -235,6 +241,9 @@ export async function saveBusinessProfile(input: {
       first_post_draft_call_to_action: input.firstPostDraft.callToAction,
       first_post_draft_hashtags: input.firstPostDraft.hashtags,
       first_post_draft_generated_at: timestamp,
+      draft_batch_json: JSON.stringify(batch),
+      draft_batch_generated_at: timestamp,
+      draft_generation_method: input.draftGenerationMethod ?? "rule-based-fallback",
       onboarding_status: targetRecord.facebook_selected_page_id ? "ready-for-first-post" : "business-profile-complete",
     })
     .eq("id", targetRecord.id)
