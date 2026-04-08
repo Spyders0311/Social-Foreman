@@ -19,6 +19,10 @@ export type SuccessPageContext = {
   stripeSubscriptionId: string | null;
   customerEmail: string | null;
   customerName: string | null;
+  planTier: string | null;
+  planName: string | null;
+  postsPerWeek: number | null;
+  postingCadenceLabel: string | null;
   record: CustomerFacebookRecord | null;
   sessionId: string | null;
 };
@@ -77,6 +81,10 @@ async function hydrateFromStripeSession(sessionId: string, current: CustomerLook
   };
 }
 
+function getSessionMetadata(session: Stripe.Checkout.Session, key: string) {
+  return session.metadata?.[key] ?? null;
+}
+
 export async function resolveSuccessPageContext(
   params?: Record<string, string | string[] | undefined>,
 ): Promise<SuccessPageContext> {
@@ -91,10 +99,20 @@ export async function resolveSuccessPageContext(
     customerName: null as string | null,
   };
 
+  let sessionPlanTier: string | null = null;
+  let sessionPlanName: string | null = null;
+  let sessionPostsPerWeek: number | null = null;
+  let sessionPostingCadenceLabel: string | null = null;
+
   if (sessionId) {
     try {
       hydrated = await hydrateFromStripeSession(sessionId, initialLookup);
       hydrated.customerEmail = hydrated.customerEmail?.trim().toLowerCase() ?? null;
+      const session = await fetchCheckoutSession(sessionId);
+      sessionPlanTier = getSessionMetadata(session, "plan_tier");
+      sessionPlanName = getSessionMetadata(session, "plan_name");
+      sessionPostsPerWeek = Number(getSessionMetadata(session, "posts_per_week") ?? "") || null;
+      sessionPostingCadenceLabel = getSessionMetadata(session, "posting_cadence_label");
     } catch (error) {
       console.log("Unable to hydrate success page from Stripe session", {
         sessionId,
@@ -143,6 +161,10 @@ export async function resolveSuccessPageContext(
     stripeSubscriptionId: record?.stripe_subscription_id ?? hydrated.stripeSubscriptionId,
     customerEmail: record?.customer_email ?? hydrated.customerEmail,
     customerName: record?.customer_name ?? hydrated.customerName,
+    planTier: record?.plan_tier ?? sessionPlanTier,
+    planName: record?.plan_name ?? sessionPlanName,
+    postsPerWeek: record?.posts_per_week ?? sessionPostsPerWeek,
+    postingCadenceLabel: record?.posting_cadence_label ?? sessionPostingCadenceLabel,
     record,
     sessionId,
   };

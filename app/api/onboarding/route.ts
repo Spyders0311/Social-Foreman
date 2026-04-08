@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
-import {
-  generateDraftBatch,
-  generateFirstPostDraft,
-  normalizeBusinessProfileInput,
-  validateBusinessProfile,
-} from "../../../src/lib/business-profile";
+import { normalizeBusinessProfileInput, validateBusinessProfile } from "../../../src/lib/business-profile";
 import { fetchCustomerFacebookConnection, saveBusinessProfile } from "../../../src/lib/customer-store";
-import { generateReviewedWeeklyDraftBatch } from "../../../src/lib/openai-drafts";
+import { generateWeeklyPlanPipeline } from "../../../src/lib/scheduler";
 
 function buildSuccessUrl(requestUrl: URL, params: Record<string, string>) {
   const successUrl = new URL("/success", requestUrl.origin);
@@ -79,35 +74,25 @@ export async function POST(request: Request) {
     );
   }
 
-  let finalDraftBatch = generateDraftBatch(profile, 3).drafts;
-  let firstDraft = finalDraftBatch[0] ?? generateFirstPostDraft(profile);
-  let draftGenerationMethod = "rule-based-fallback";
-  let weeklyReviewSummary: string | null = null;
-  let weeklyCandidateCount: number | null = null;
-
-  try {
-    const reviewedBatch = await generateReviewedWeeklyDraftBatch(profile);
-    finalDraftBatch = reviewedBatch.approved;
-    firstDraft = reviewedBatch.approved[0] ?? firstDraft;
-    draftGenerationMethod = `openai-${reviewedBatch.model}`;
-    weeklyReviewSummary = reviewedBatch.reviewSummary;
-    weeklyCandidateCount = reviewedBatch.candidates.length;
-  } catch (error) {
-    console.error("OpenAI weekly draft pipeline failed, using rule-based fallback", {
-      onboardingId: record.id,
-      reason: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-
   await saveBusinessProfile({
     onboardingId: record.id,
     profile,
-    firstPostDraft: firstDraft,
-    draftBatch: finalDraftBatch,
-    draftGenerationMethod,
-    weeklyReviewSummary,
-    weeklyCandidateCount,
+    firstPostDraft: {
+      headline: `${profile.businessName} weekly content queue`,
+      body: `${profile.businessName} now has a saved business profile, and Social Foreman is generating reviewed posts for the current weekly schedule.`,
+      callToAction: `Contact ${profile.businessName} at ${profile.phone}.`,
+      hashtags: [],
+    },
+    draftBatch: [],
+    draftGenerationMethod: "pipeline-pending",
+    weeklyReviewSummary: null,
+    weeklyCandidateCount: null,
+    postsPerWeek: record.posts_per_week ?? null,
+    postingCadenceDays: record.posting_cadence_days ?? null,
+    postingCadenceLabel: record.posting_cadence_label ?? null,
   });
+
+  await generateWeeklyPlanPipeline({ onboardingId: record.id });
 
   return NextResponse.redirect(
     buildSuccessUrl(requestUrl, {

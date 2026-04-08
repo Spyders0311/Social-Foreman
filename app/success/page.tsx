@@ -3,14 +3,16 @@ import {
   BUSINESS_TYPES,
   generateDraftBatch,
 } from "../../src/lib/business-profile";
+import { cadenceForPostsPerWeek, formatCadenceLabel, getPlanConfig } from "../../src/lib/plans";
 import { fetchFacebookPages } from "../../src/lib/facebook";
+import { previewCurrentWeeklyPosts } from "../../src/lib/scheduler";
 import { resolveSuccessPageContext } from "../../src/lib/success-context";
 
 type SuccessPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-const nextSteps = [
+const nextStepTemplates = [
   {
     title: "Fill out your business profile",
     description:
@@ -22,14 +24,14 @@ const nextSteps = [
       "Link the exact Facebook Business Page we should publish to so each customer record knows where approved content belongs.",
   },
   {
-    title: "Generate a reviewed weekly batch",
+    title: "Generate your reviewed batch",
     description:
-      "We create 5 candidate Facebook posts from your profile, run a second review pass, then keep only the best 3 approved drafts on your record.",
+      "We create a broader candidate pool from your profile, run a second review pass, then keep only the approved posts that match your plan cadence.",
   },
   {
     title: "Publish on your weekly cadence",
     description:
-      "Once your profile and page are in place, Social Foreman can keep your Monday, Wednesday, and Friday posting rhythm moving with reviewed content.",
+      "Once your profile and page are in place, Social Foreman can keep your posting rhythm moving with reviewed content based on your selected plan.",
   },
 ];
 
@@ -141,12 +143,35 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
     }
   }
 
+  const plan = getPlanConfig(context.planTier);
+  const postsPerWeek = context.postsPerWeek ?? plan.postsPerWeek;
+  const cadenceDays = context.record?.posting_cadence_days?.length
+    ? context.record.posting_cadence_days
+    : cadenceForPostsPerWeek(postsPerWeek);
+  const cadenceLabel = context.postingCadenceLabel ?? formatCadenceLabel(postsPerWeek, cadenceDays);
+  const nextSteps = [
+    nextStepTemplates[0],
+    nextStepTemplates[1],
+    {
+      ...nextStepTemplates[2],
+      description: `We create ${Math.max(5, postsPerWeek + 2)} candidate Facebook posts from your profile, run a second review pass, then keep the best ${postsPerWeek} approved drafts on your record.`,
+    },
+    {
+      ...nextStepTemplates[3],
+      description: `Once your profile and page are in place, Social Foreman can keep your ${cadenceLabel} posting rhythm moving with reviewed content.`,
+    },
+  ];
+
   const connectHref = buildFacebookConnectHref({
     onboardingId: context.onboardingId,
     stripeCustomerId: context.stripeCustomerId,
     stripeSubscriptionId: context.stripeSubscriptionId,
     customerEmail: context.customerEmail,
   });
+
+  const pipelinePreview = context.record
+    ? await previewCurrentWeeklyPosts({ onboardingId: context.record.id })
+    : null;
 
   const generatedBatch = parseDraftBatch(context.record?.draft_batch_json ?? null);
 
@@ -169,10 +194,23 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
           differentiators: context.record.differentiators ?? "",
           tone: context.record.brand_tone,
           audienceNotes: context.record.audience_notes ?? "",
-        }).drafts
+        }, postsPerWeek).drafts
       : [];
 
-  const draftsToRender = generatedBatch.length ? generatedBatch : previewBatch;
+  const scheduledPosts = pipelinePreview?.posts && Array.isArray(pipelinePreview.posts)
+    ? pipelinePreview.posts
+    : [];
+
+  const draftsToRender = scheduledPosts.length
+    ? scheduledPosts.map((post: { headline: string; body: string; call_to_action?: string; callToAction?: string; hashtags?: string[] | null }) => ({
+        headline: post.headline,
+        body: post.body,
+        callToAction: post.call_to_action ?? post.callToAction ?? "",
+        hashtags: post.hashtags ?? [],
+      }))
+    : generatedBatch.length
+      ? generatedBatch
+      : previewBatch;
 
   const statusMessage = getStatusMessage(
     context.onboardingFlowStatus,
@@ -192,7 +230,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
                 Welcome to Social Foreman.
               </h1>
               <p className="mt-5 max-w-3xl text-lg text-[#e8dcc9]">
-                Your checkout is done. Now let’s turn that into a usable business profile, connect the right Facebook page, and generate a reviewed weekly batch before anything gets published.
+                {`Your checkout is done. Now let’s turn that into a usable business profile, connect the right Facebook page, and generate a reviewed batch that matches your ${context.planName ?? plan.name} cadence before anything gets published.`}
               </p>
             </div>
             <div className="flex flex-col gap-3 lg:items-end">
@@ -209,7 +247,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
           </div>
 
           <div className="mt-8 rounded-2xl bg-white/8 p-5 text-sm leading-7 text-[#f6ead8]">
-            Fill out the business profile below, then link Facebook. Social Foreman now attempts a two-pass GPT workflow that creates 5 candidates, reviews them down to the best 3, and only stores that approved batch. The older rule-based generator stays in place as fallback.
+            {`Fill out the business profile below, then link Facebook. Social Foreman now attempts a two-pass GPT workflow that creates a larger candidate pool, reviews it down to the best ${postsPerWeek}, and stores only that approved batch for your ${cadenceLabel} plan. The older rule-based generator stays in place as fallback.`}
           </div>
 
           {statusMessage ? (
@@ -248,7 +286,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
               </p>
               <h2 className="text-3xl font-bold text-[#132027]">Capture the business context once.</h2>
               <p className="text-lg text-[#405058]">
-                This saves directly to the onboarding record tied to checkout so Social Foreman can generate a relevant reviewed weekly batch and map publishing to the right connected page.
+                {`This saves directly to the onboarding record tied to checkout so Social Foreman can generate a relevant reviewed batch for your ${context.planName ?? plan.name} plan and map publishing to the right connected page.`}
               </p>
             </div>
 
@@ -394,7 +432,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
                 type="submit"
                 className="inline-flex rounded-full bg-[#132027] px-6 py-3 font-semibold text-[#f8f2e8] transition hover:bg-[#21414b]"
               >
-                Save profile and generate reviewed top 3 batch
+                Save profile and generate reviewed batch
               </button>
             </form>
           </section>
@@ -410,7 +448,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
                     Link the publishing destination.
                   </h2>
                   <p className="mt-3 text-lg text-[#405058]">
-                    The selected page is saved on the same customer onboarding record as the business profile and reviewed top-3 batch so approved posts can be routed correctly.
+                    The selected page is saved on the same customer onboarding record as the business profile and reviewed plan-aware batch so approved posts can be routed correctly.
                   </p>
                 </div>
                 <a
@@ -495,17 +533,17 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
                 Reviewed weekly batch
               </p>
               <h2 className="mt-3 text-3xl font-bold">
-                {batchReady ? "Your top 3 approved drafts are ready." : "Your reviewed weekly batch unlocks as onboarding fills in."}
+                {batchReady ? `Your ${postsPerWeek} approved drafts are ready.` : "Your reviewed weekly batch unlocks as onboarding fills in."}
               </h2>
               <p className="mt-4 text-[#d8cec1]">
-                Social Foreman aims to generate 5 candidate posts, review and refine them with a second pass, then store only the final top 3 approved drafts for the week. If the AI path fails, the app falls back to the internal rule-based generator.
+                {`Social Foreman aims to generate ${Math.max(5, postsPerWeek + 2)} candidate posts, review and refine them with a second pass, then store only the final ${postsPerWeek} approved drafts for the week. If the AI path fails, the app falls back to the internal rule-based generator.`}
               </p>
 
               {draftsToRender.length ? (
                 <div className="mt-6 space-y-4">
-                  {draftsToRender.slice(0, 3).map((draft, index) => (
+                  {draftsToRender.slice(0, postsPerWeek).map((draft, index) => (
                     <div key={`${draft.headline}-${index}`} className="rounded-2xl bg-white/8 p-5">
-                      <p className="text-xs uppercase tracking-[0.15em] text-[#d7c6a1]">Approved Draft {index + 1}</p>
+                      <p className="text-xs uppercase tracking-[0.15em] text-[#d7c6a1]">Approved Draft {index + 1} of {postsPerWeek}</p>
                       <p className="mt-2 text-xl font-semibold">{draft.headline}</p>
                       <p className="mt-3 whitespace-pre-wrap text-[#f6ead8]">{draft.body}</p>
                       <p className="mt-3 text-sm text-[#f6ead8]"><span className="font-semibold">CTA:</span> {draft.callToAction}</p>
@@ -524,21 +562,27 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
                 </div>
               ) : businessProfileReady ? (
                 <div className="mt-6 rounded-2xl border border-white/15 bg-white/8 p-5 text-sm text-[#f6ead8]">
-                  Your saved business info is enough to create a preview batch, but it has not been stored yet. Save the onboarding form again to lock the reviewed top-3 batch onto the customer record.
+                  Your saved business info is enough to create a preview batch, but it has not been stored yet. Save the onboarding form again to lock the reviewed plan batch onto the customer record.
                 </div>
               ) : (
                 <div className="mt-6 rounded-2xl border border-white/15 bg-white/8 p-5 text-sm text-[#f6ead8]">
-                  Complete the business profile form to generate your first reviewed top-3 batch. Link Facebook too if you want the record fully ready for publishing.
+                  Complete the business profile form to generate your first reviewed plan-aware batch. Link Facebook too if you want the record fully ready for publishing.
                 </div>
               )}
 
               <div className="mt-6 grid gap-3 text-sm text-[#d8cec1]">
                 <div className="rounded-2xl bg-white/8 px-4 py-3">Business profile: {businessProfileReady ? "saved" : "not saved yet"}</div>
-                <div className="rounded-2xl bg-white/8 px-4 py-3">Weekly draft batch: {batchReady ? "reviewed top 3 saved" : "not generated yet"}</div>
+                <div className="rounded-2xl bg-white/8 px-4 py-3">Plan: {context.planName ?? plan.name}</div>
+                <div className="rounded-2xl bg-white/8 px-4 py-3">Posts per week: {postsPerWeek}</div>
+                <div className="rounded-2xl bg-white/8 px-4 py-3">Posting cadence: {cadenceLabel}</div>
+                <div className="rounded-2xl bg-white/8 px-4 py-3">Weekly draft batch: {batchReady ? `reviewed ${postsPerWeek} saved` : "not generated yet"}</div>
                 <div className="rounded-2xl bg-white/8 px-4 py-3">Generation method: {context.record?.draft_generation_method ?? "not run yet"}</div>
                 <div className="rounded-2xl bg-white/8 px-4 py-3">Candidate pool reviewed: {context.record?.weekly_candidate_count ?? 0}</div>
                 <div className="rounded-2xl bg-white/8 px-4 py-3">Facebook page: {pageReady ? context.selectedPageName ?? "linked" : "not linked yet"}</div>
                 <div className="rounded-2xl bg-white/8 px-4 py-3">Onboarding status: {context.onboardingStatus ?? "unknown"}</div>
+                <div className="rounded-2xl bg-white/8 px-4 py-3">Weekly plan: {pipelinePreview?.weeklyPlan ? `${pipelinePreview.weeklyPlan.week_key} (${pipelinePreview.weeklyPlan.status})` : "not generated yet"}</div>
+                <div className="rounded-2xl bg-white/8 px-4 py-3">Selected/scheduled posts: {pipelinePreview?.weeklyPlan?.scheduled_count ?? 0}</div>
+                <div className="rounded-2xl bg-white/8 px-4 py-3">Published this week: {pipelinePreview?.weeklyPlan?.published_count ?? 0}</div>
               </div>
             </section>
           </div>

@@ -10,6 +10,13 @@ type ReviewedDraftBatch = {
   model: string;
 };
 
+type DraftGenerationOptions = {
+  approvedCount?: number;
+  candidateCount?: number;
+  cadenceDays?: string[];
+  cadenceLabel?: string;
+};
+
 type CandidateResponse = {
   drafts: BusinessProfileDraft[];
 };
@@ -172,23 +179,32 @@ function validateDraft(draft: BusinessProfileDraft, profile: BusinessProfileInpu
 
 export async function generateReviewedWeeklyDraftBatch(
   profile: BusinessProfileInput,
+  options: DraftGenerationOptions = {},
 ): Promise<ReviewedDraftBatch> {
-  const generationInstructions = `You create high-quality Facebook post drafts for local service businesses. Return exactly 5 draft candidates as JSON with a top-level {"drafts": [...]} object. Each draft must include headline, body, callToAction, and hashtags. Keep each post grounded in the supplied business profile, sound natural for Facebook, avoid hypey spam language, and vary the angle across educational, trust-building, promotional, local/community, and practical problem-solving themes. Mention the business name and service area naturally. Include a clear contact CTA that uses the phone number and website when appropriate. Hashtags should be short, clean, and omit the # symbol.`;
+  const approvedCount = Math.max(1, Math.min(options.approvedCount ?? 3, 5));
+  const candidateCount = Math.max(approvedCount + 1, Math.min(options.candidateCount ?? Math.max(5, approvedCount + 2), 8));
+  const cadenceContext = options.cadenceDays?.length
+    ? `${options.cadenceLabel ?? options.cadenceDays.join(", ")} cadence with posts planned for ${options.cadenceDays.join(", ")}`
+    : options.cadenceLabel
+      ? `${options.cadenceLabel} cadence`
+      : "weekly cadence";
+
+  const generationInstructions = `You create high-quality Facebook post drafts for local service businesses. Return exactly ${candidateCount} draft candidates as JSON with a top-level {"drafts": [...]} object. Each draft must include headline, body, callToAction, and hashtags. Keep each post grounded in the supplied business profile, sound natural for Facebook, avoid hypey spam language, and vary the angle across educational, trust-building, promotional, local/community, and practical problem-solving themes. Mention the business name and service area naturally. Include a clear contact CTA that uses the phone number and website when appropriate. Hashtags should be short, clean, and omit the # symbol. Build the set for a ${cadenceContext}.`;
 
   const candidatePayload = await callOpenAiJson<CandidateResponse>(
     generationInstructions,
-    JSON.stringify({ profile, goal: "Generate five candidate weekly Facebook posts." }),
+    JSON.stringify({ profile, approvedCount, candidateCount, cadenceDays: options.cadenceDays ?? [], cadenceLabel: options.cadenceLabel ?? null, goal: `Generate ${candidateCount} candidate weekly Facebook posts for a plan that keeps ${approvedCount} approved posts.` }),
   );
 
   const candidates = Array.isArray(candidatePayload.drafts)
     ? candidatePayload.drafts.map(normalizeDraft).filter((draft) => draft.headline && draft.body && draft.callToAction)
     : [];
 
-  if (candidates.length < 5) {
-    throw new Error(`OpenAI returned ${candidates.length} candidate drafts instead of 5.`);
+  if (candidates.length < candidateCount) {
+    throw new Error(`OpenAI returned ${candidates.length} candidate drafts instead of ${candidateCount}.`);
   }
 
-  const reviewInstructions = `You are the second-pass reviewer for weekly Facebook post drafts. Review the supplied 5 candidate drafts and select the best 3 for final approval. Improve clarity, local relevance, specificity, and polish while keeping them realistic and non-spammy. Return JSON with {"approvedDrafts": [...], "summary": "..."}. The approvedDrafts array must contain exactly 3 finalized drafts with headline, body, callToAction, and hashtags. Prefer variety across the three selected posts.`;
+  const reviewInstructions = `You are the second-pass reviewer for weekly Facebook post drafts. Review the supplied ${candidateCount} candidate drafts and select the best ${approvedCount} for final approval. Improve clarity, local relevance, specificity, and polish while keeping them realistic and non-spammy. Return JSON with {"approvedDrafts": [...], "summary": "..."}. The approvedDrafts array must contain exactly ${approvedCount} finalized drafts with headline, body, callToAction, and hashtags. Prefer variety across the approved set, and make sure the final set fits a ${cadenceContext}.`;
 
   const reviewPayload = await callOpenAiJson<ReviewResponse>(
     reviewInstructions,
@@ -199,8 +215,8 @@ export async function generateReviewedWeeklyDraftBatch(
     ? reviewPayload.approvedDrafts.map(normalizeDraft)
     : [];
 
-  if (approved.length !== 3) {
-    throw new Error(`OpenAI review returned ${approved.length} approved drafts instead of 3.`);
+  if (approved.length !== approvedCount) {
+    throw new Error(`OpenAI review returned ${approved.length} approved drafts instead of ${approvedCount}.`);
   }
 
   approved.forEach((draft, index) => {
@@ -211,7 +227,7 @@ export async function generateReviewedWeeklyDraftBatch(
   });
 
   return {
-    candidates: candidates.slice(0, 5),
+    candidates: candidates.slice(0, candidateCount),
     approved,
     reviewSummary: reviewPayload.summary?.trim() || null,
     model: OPENAI_MODEL,

@@ -1,5 +1,7 @@
 import Stripe from "stripe";
 
+import { DEFAULT_PLAN_TIER, getPlanConfig, type PlanTier } from "./plans";
+
 export type OnboardingRecord = {
   stripeEventId: string;
   createdAt: string;
@@ -8,6 +10,11 @@ export type OnboardingRecord = {
   customerName: string | null;
   subscriptionId: string | null;
   status: string;
+  planTier: PlanTier;
+  planName: string;
+  postsPerWeek: number;
+  cadenceDays: string[];
+  cadenceLabel: string;
   notes: string[];
 };
 
@@ -15,6 +22,9 @@ export function buildCheckoutRecord(
   event: Stripe.Event,
   session: Stripe.Checkout.Session,
 ): OnboardingRecord {
+  const planTier = (session.metadata?.plan_tier as PlanTier | undefined) ?? DEFAULT_PLAN_TIER;
+  const plan = getPlanConfig(planTier);
+
   return {
     stripeEventId: event.id,
     createdAt: new Date().toISOString(),
@@ -23,8 +33,15 @@ export function buildCheckoutRecord(
     customerName: session.customer_details?.name ?? null,
     subscriptionId: typeof session.subscription === "string" ? session.subscription : null,
     status: "paid-awaiting-onboarding",
+    planTier: plan.key,
+    planName: plan.name,
+    postsPerWeek: plan.postsPerWeek,
+    cadenceDays: plan.cadenceLabel === "Monday through Friday"
+      ? ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+      : ["Monday", "Wednesday", "Friday"],
+    cadenceLabel: plan.cadenceLabel,
     notes: [
-      "Stripe checkout completed.",
+      `Stripe checkout completed for the ${plan.name} plan.`,
       "Send owner notification email.",
       "Send customer welcome email.",
       "Collect Facebook Page access.",
@@ -42,7 +59,7 @@ export function buildWelcomeEmail(record: OnboardingRecord) {
 
 Thanks for signing up for Social Foreman.
 
-You’re all set on the payment side. Now we just need a few simple things from you so we can get your content moving.
+You’re all set on the payment side for the ${record.planName} plan. That includes ${record.postsPerWeek} Facebook posts per week on a ${record.cadenceLabel} cadence. Now we just need a few simple things from you so we can get your content moving.
 
 Reply to this email with:
 - Business name
@@ -79,6 +96,9 @@ Customer
 
 Subscription
 - Status: ${record.status}
+- Plan: ${record.planName} (${record.planTier})
+- Posts per week: ${record.postsPerWeek}
+- Cadence: ${record.cadenceLabel}
 - Stripe customer ID: ${record.customerId ?? "unknown"}
 - Subscription ID: ${record.subscriptionId ?? "unknown"}
 - Event time: ${record.createdAt}

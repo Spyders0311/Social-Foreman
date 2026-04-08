@@ -1,8 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-
-const PLAN_AMOUNT_CENTS = 9900;
-const PLAN_NAME = "Social Foreman Starter";
+import { cadenceForPostsPerWeek, formatCadenceLabel, getPlanConfig, resolvePlanTier } from "../../../src/lib/plans";
 
 async function getStripeSecretKey() {
   if (process.env.STRIPE_SECRET_KEY) {
@@ -32,6 +30,11 @@ export async function POST(request: Request) {
   try {
     const stripeSecretKey = await getStripeSecretKey();
     const origin = getOrigin(request);
+    const formData = await request.formData();
+    const planTier = resolvePlanTier(String(formData.get("planTier") ?? "").trim().toLowerCase());
+    const plan = getPlanConfig(planTier);
+    const cadenceDays = cadenceForPostsPerWeek(plan.postsPerWeek);
+    const postingCadenceLabel = formatCadenceLabel(plan.postsPerWeek, cadenceDays);
 
     const body = new URLSearchParams({
       mode: "subscription",
@@ -39,10 +42,14 @@ export async function POST(request: Request) {
       cancel_url: `${origin}/?checkout=cancel`,
       "line_items[0][quantity]": "1",
       "line_items[0][price_data][currency]": "usd",
-      "line_items[0][price_data][unit_amount]": String(PLAN_AMOUNT_CENTS),
+      "line_items[0][price_data][unit_amount]": String(plan.priceMonthlyCents),
       "line_items[0][price_data][recurring][interval]": "month",
-      "line_items[0][price_data][product_data][name]": PLAN_NAME,
-      "metadata[plan]": "starter_99_monthly",
+      "line_items[0][price_data][product_data][name]": `Social Foreman ${plan.name}`,
+      "metadata[plan]": plan.stripeMetadataValue,
+      "metadata[plan_tier]": plan.key,
+      "metadata[plan_name]": plan.name,
+      "metadata[posts_per_week]": String(plan.postsPerWeek),
+      "metadata[posting_cadence_label]": postingCadenceLabel,
     });
 
     const stripeResponse = await fetch("https://api.stripe.com/v1/checkout/sessions", {

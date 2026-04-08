@@ -1,6 +1,8 @@
+import { PLAN_CONFIG } from "../src/lib/plans";
+
 const highlights = [
   "Custom Facebook posts for your local service area",
-  "Posted 3x per week on Monday, Wednesday, and Friday",
+  "Choose Starter 3x/week or VIP 5x/week coverage",
   "Reviewed and refined before anything goes live",
 ];
 
@@ -23,11 +25,13 @@ const outcomes = [
 ];
 
 const deliverables = [
-  "3 custom Facebook posts per week, scheduled for Monday, Wednesday, and Friday",
+  "Starter includes 3 custom Facebook posts per week on Monday, Wednesday, and Friday",
+  "VIP includes 5 custom Facebook posts per week, Monday through Friday",
   "Posts tailored to your tone, services, and geographic service area",
-  "A starter batch generated inside the app for fast review and refinement",
   "Publishing workflow tied directly to your connected Facebook Business Page",
 ];
+
+const plans = [PLAN_CONFIG.starter, PLAN_CONFIG.vip];
 
 export default function Home() {
   return (
@@ -38,10 +42,10 @@ export default function Home() {
             Social Foreman
           </p>
           <h1 className="mt-4 max-w-4xl text-4xl font-bold leading-tight sm:text-5xl">
-            Custom Facebook posts for local businesses, delivered and posted three times a week
+            Custom Facebook posts for local businesses, with a clear Starter or VIP weekly cadence
           </h1>
           <p className="mt-6 max-w-3xl text-lg text-[#e8dcc9]">
-            We create personalized Facebook content for local service businesses and keep your page active every Monday, Wednesday, and Friday, without asking you to become the marketing department.
+            We create personalized Facebook content for local service businesses and keep your page active on the cadence you choose, without asking you to become the marketing department.
           </p>
           <div className="mt-8 flex flex-wrap gap-3 text-sm text-[#f8f2e8]">
             {highlights.map((item) => (
@@ -57,7 +61,7 @@ export default function Home() {
             href="#pricing"
             className="mt-10 inline-flex rounded-full bg-[#d69f44] px-7 py-3 text-base font-semibold text-[#17232a] transition hover:bg-[#efb356]"
           >
-            View $99/mo plan
+            View plans
           </a>
         </section>
 
@@ -99,29 +103,52 @@ export default function Home() {
           <div className="mt-4 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h2 className="text-3xl font-bold text-[#132027] sm:text-4xl">
-                One plan for local businesses that need to stay top-of-mind.
+                Two plans, depending on how aggressively you want to stay in front of customers.
               </h2>
               <p className="mt-3 max-w-2xl text-lg text-[#405058]">
-                Includes custom post planning, reviewed batch drafts, and recurring Facebook publishing three times per week.
+                Both plans include custom post planning, reviewed batch drafts, and Facebook publishing support. Starter stays lean at 3 posts per week. VIP steps up to 5 posts per week for businesses that want near-daily visibility.
               </p>
             </div>
-            <div className="rounded-2xl bg-[#132027] p-7 text-[#f8f2e8]">
-              <p className="text-sm uppercase tracking-[0.2em] text-[#d7c6a1]">
-                Starter
-              </p>
-              <p className="mt-2 text-5xl font-bold">
-                $99
-                <span className="text-lg font-medium text-[#d8cec1]">/mo</span>
-              </p>
-              <p className="mt-3 text-sm text-[#d8cec1]">Cancel anytime</p>
-              <form action="/api/checkout" method="POST" className="mt-6">
-                <button
-                  type="submit"
-                  className="w-full rounded-full bg-[#d69f44] px-5 py-3 font-semibold text-[#17232a] transition hover:bg-[#efb356]"
+            <div className="grid gap-4 lg:grid-cols-2">
+              {plans.map((plan) => (
+                <div
+                  key={plan.key}
+                  className={`rounded-2xl p-7 ${plan.key === "vip" ? "bg-[#d69f44] text-[#17232a]" : "bg-[#132027] text-[#f8f2e8]"}`}
                 >
-                  Start for $99/month
-                </button>
-              </form>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className={`text-sm uppercase tracking-[0.2em] ${plan.key === "vip" ? "text-[#5f4513]" : "text-[#d7c6a1]"}`}>
+                        {plan.name}
+                      </p>
+                      <p className="mt-2 text-5xl font-bold">
+                        ${plan.priceMonthlyCents / 100}
+                        <span className={`text-lg font-medium ${plan.key === "vip" ? "text-[#5f4513]" : "text-[#d8cec1]"}`}>/mo</span>
+                      </p>
+                    </div>
+                    {plan.key === "vip" ? (
+                      <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] text-[#5f4513]">
+                        Best for higher visibility
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className={`mt-3 text-sm ${plan.key === "vip" ? "text-[#5f4513]" : "text-[#d8cec1]"}`}>{plan.description}</p>
+                  <ul className={`mt-5 space-y-2 text-sm ${plan.key === "vip" ? "text-[#2e2410]" : "text-[#f1e6d4]"}`}>
+                    <li>{plan.postsPerWeek} reviewed Facebook posts per week</li>
+                    <li>{plan.cadenceLabel} posting cadence</li>
+                    <li>Tailored to your services, tone, and service area</li>
+                    <li>Cancel anytime</li>
+                  </ul>
+                  <form action="/api/checkout" method="POST" className="mt-6">
+                    <input type="hidden" name="planTier" value={plan.key} />
+                    <button
+                      type="submit"
+                      className={`w-full rounded-full px-5 py-3 font-semibold transition ${plan.key === "vip" ? "bg-[#17232a] text-[#f8f2e8] hover:bg-[#25343d]" : "bg-[#d69f44] text-[#17232a] hover:bg-[#efb356]"}`}
+                    >
+                      Start {plan.name} for {plan.priceLabel}
+                    </button>
+                  </form>
+                </div>
+              ))}
             </div>
           </div>
         </section>
