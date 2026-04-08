@@ -581,8 +581,9 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
                 <div className="rounded-2xl bg-white/8 px-4 py-3">Facebook page: {pageReady ? context.selectedPageName ?? "linked" : "not linked yet"}</div>
                 <div className="rounded-2xl bg-white/8 px-4 py-3">Onboarding status: {context.onboardingStatus ?? "unknown"}</div>
                 <div className="rounded-2xl bg-white/8 px-4 py-3">Weekly plan: {pipelinePreview?.weeklyPlan ? `${pipelinePreview.weeklyPlan.week_key} (${pipelinePreview.weeklyPlan.status})` : "not generated yet"}</div>
-                <div className="rounded-2xl bg-white/8 px-4 py-3">Selected/scheduled posts: {pipelinePreview?.weeklyPlan?.scheduled_count ?? 0}</div>
+                <div className="rounded-2xl bg-white/8 px-4 py-3">Queued posts this week: {pipelinePreview?.weeklyPlan?.queued_count ?? 0}</div>
                 <div className="rounded-2xl bg-white/8 px-4 py-3">Published this week: {pipelinePreview?.weeklyPlan?.published_count ?? 0}</div>
+                <div className="rounded-2xl bg-white/8 px-4 py-3">Failed this week: {pipelinePreview?.weeklyPlan?.failed_count ?? 0}</div>
               </div>
             </section>
           </div>

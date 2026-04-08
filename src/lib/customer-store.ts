@@ -269,7 +269,7 @@ export async function saveBusinessProfile(input: {
       posts_per_week: input.postsPerWeek ?? targetRecord.posts_per_week ?? null,
       posting_cadence_days: input.postingCadenceDays ?? targetRecord.posting_cadence_days ?? null,
       posting_cadence_label: input.postingCadenceLabel ?? targetRecord.posting_cadence_label ?? null,
-      onboarding_status: targetRecord.facebook_selected_page_id ? "ready-for-first-post" : "business-profile-complete",
+      onboarding_status: targetRecord.facebook_selected_page_id ? "ready-to-publish" : "business-profile-complete",
     })
     .eq("id", targetRecord.id)
     .select(customerSelectFields)
@@ -346,7 +346,7 @@ export async function saveFacebookPageSelection(input: {
       facebook_selected_page_name: input.selectedPage.pageName,
       facebook_page_access_token: input.selectedPage.pageAccessToken,
       facebook_page_selected_at: timestamp,
-      onboarding_status: targetRecord.current_weekly_plan_id ? "scheduled" : "facebook-page-linked",
+      onboarding_status: targetRecord.current_weekly_plan_id ? "ready-to-publish" : "facebook-page-linked",
     })
     .eq("id", targetRecord.id)
     .select(customerSelectFields)

@@ -4,14 +4,13 @@ import { publishFacebookPagePost } from "./facebook";
 import { generateReviewedWeeklyDraftBatch } from "./openai-drafts";
 import { buildGenerationSnapshot, buildPostMessage, buildWeeklyGenerationPlan, parseDraftBatchJson } from "./post-pipeline";
 import {
-  fetchDueScheduledPosts,
+  fetchDueQueuedPosts,
   fetchWeeklyPlan,
   fetchWeeklyPosts,
   markPostPublishFailed,
   markPostPublished,
   markPostPublishing,
   replaceWeeklyPosts,
-  selectWeeklyApprovedPosts,
   upsertWeeklyPlan,
 } from "./post-store";
 import { cadenceForPostsPerWeek, formatCadenceLabel, getPlanConfig } from "./plans";
@@ -63,21 +62,18 @@ export async function generateWeeklyPlanPipeline(input: {
     referenceDate: input.referenceDate,
   });
 
-  let candidates = generateDraftBatch(profile, Math.max(5, postsPerWeek + 2)).drafts;
-  let approved = candidates.slice(0, postsPerWeek);
+  let drafts = generateDraftBatch(profile, postsPerWeek).drafts;
   let reviewSummary: string | null = null;
   let generationMethod = "rule-based-fallback";
   let generationModel: string | null = null;
 
   try {
     const reviewed = await generateReviewedWeeklyDraftBatch(profile, {
-      approvedCount: postsPerWeek,
-      candidateCount: Math.max(5, postsPerWeek + 2),
+      postCount: postsPerWeek,
       cadenceDays,
       cadenceLabel,
     });
-    candidates = reviewed.candidates;
-    approved = reviewed.approved;
+    drafts = reviewed.drafts;
     reviewSummary = reviewed.reviewSummary;
     generationMethod = `openai-${reviewed.model}`;
     generationModel = reviewed.model;
@@ -93,48 +89,38 @@ export async function generateWeeklyPlanPipeline(input: {
     generationMethod,
     generationModel,
     reviewSummary,
-    candidateCount: candidates.length,
-    approvedCount: approved.length,
+    postCount: drafts.length,
   });
 
   const insertedPosts = await replaceWeeklyPosts({
     onboardingId: record.id,
     weeklyPlanId: weeklyPlan.id,
     weekKey: weeklyPlan.week_key,
+    weekStartDate: weeklyPlan.week_start_date,
+    cadenceDays: weeklyPlan.cadence_days,
     generationMethod,
     generationModel,
-    candidates,
-    approved,
+    drafts,
   });
 
   await saveBusinessProfile({
     onboardingId: record.id,
     profile,
-    firstPostDraft: approved[0] ?? candidates[0],
-    draftBatch: approved,
+    firstPostDraft: drafts[0],
+    draftBatch: drafts,
     draftGenerationMethod: generationMethod,
     weeklyReviewSummary: reviewSummary,
-    weeklyCandidateCount: candidates.length,
+    weeklyCandidateCount: drafts.length,
     postsPerWeek,
     postingCadenceDays: cadenceDays,
     postingCadenceLabel: cadenceLabel,
   });
 
-  const refreshedWeeklyPlan = await fetchWeeklyPlan({ onboardingId: record.id, weekKey: weeklyPlan.week_key });
-  if (!refreshedWeeklyPlan) {
-    throw new Error("Weekly plan could not be reloaded after generation.");
-  }
-
-  const selected = await selectWeeklyApprovedPosts({
-    weeklyPlan: refreshedWeeklyPlan,
-    posts: insertedPosts,
-  });
-
   await updateCustomerOnboardingStatus({
     onboardingId: record.id,
-    onboardingStatus: record.facebook_selected_page_id ? "scheduled" : "awaiting-facebook-page",
-    currentWeeklyPlanId: refreshedWeeklyPlan.id,
-    currentWeekKey: refreshedWeeklyPlan.week_key,
+    onboardingStatus: record.facebook_selected_page_id ? "ready-to-publish" : "awaiting-facebook-page",
+    currentWeeklyPlanId: weeklyPlan.id,
+    currentWeekKey: weeklyPlan.week_key,
     generationSnapshot: buildGenerationSnapshot({
       profile,
       planTier: record.plan_tier ?? plan.key,
@@ -146,20 +132,19 @@ export async function generateWeeklyPlanPipeline(input: {
 
   return {
     recordId: record.id,
-    weeklyPlanId: refreshedWeeklyPlan.id,
-    weekKey: refreshedWeeklyPlan.week_key,
+    weeklyPlanId: weeklyPlan.id,
+    weekKey: weeklyPlan.week_key,
     postsPerWeek,
     cadenceDays,
     cadenceLabel,
-    generatedCount: candidates.length,
-    approvedCount: approved.length,
-    selectedCount: selected.selectedPostIds.length,
+    generatedCount: drafts.length,
+    queuedCount: insertedPosts.length,
     generationMethod,
   };
 }
 
 export async function publishDuePostsPipeline(now = new Date()) {
-  const duePosts = await fetchDueScheduledPosts(now.toISOString());
+  const duePosts = await fetchDueQueuedPosts(now.toISOString());
   const results: Array<{ postId: string; status: "published" | "failed"; facebookPostId?: string; error?: string }> = [];
 
   for (const post of duePosts) {
@@ -196,6 +181,7 @@ export async function publishDuePostsPipeline(now = new Date()) {
       const message = error instanceof Error ? error.message : "Unknown publish failure";
       await markPostPublishFailed({
         postId: post.id,
+        weeklyPlanId: post.weekly_plan_id,
         errorMessage: message,
       });
       results.push({

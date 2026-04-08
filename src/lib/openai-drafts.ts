@@ -4,25 +4,19 @@ const OPENAI_API_URL = "https://api.openai.com/v1/responses";
 const OPENAI_MODEL = process.env.OPENAI_WEEKLY_DRAFT_MODEL?.trim() || "gpt-5-mini";
 
 type ReviewedDraftBatch = {
-  candidates: BusinessProfileDraft[];
-  approved: BusinessProfileDraft[];
+  drafts: BusinessProfileDraft[];
   reviewSummary: string | null;
   model: string;
 };
 
 type DraftGenerationOptions = {
-  approvedCount?: number;
-  candidateCount?: number;
+  postCount?: number;
   cadenceDays?: string[];
   cadenceLabel?: string;
 };
 
-type CandidateResponse = {
+type DraftResponse = {
   drafts: BusinessProfileDraft[];
-};
-
-type ReviewResponse = {
-  approvedDrafts: BusinessProfileDraft[];
   summary?: string;
 };
 
@@ -181,55 +175,44 @@ export async function generateReviewedWeeklyDraftBatch(
   profile: BusinessProfileInput,
   options: DraftGenerationOptions = {},
 ): Promise<ReviewedDraftBatch> {
-  const approvedCount = Math.max(1, Math.min(options.approvedCount ?? 3, 5));
-  const candidateCount = Math.max(approvedCount + 1, Math.min(options.candidateCount ?? Math.max(5, approvedCount + 2), 8));
+  const postCount = Math.max(1, Math.min(options.postCount ?? 3, 5));
   const cadenceContext = options.cadenceDays?.length
     ? `${options.cadenceLabel ?? options.cadenceDays.join(", ")} cadence with posts planned for ${options.cadenceDays.join(", ")}`
     : options.cadenceLabel
       ? `${options.cadenceLabel} cadence`
       : "weekly cadence";
 
-  const generationInstructions = `You create high-quality Facebook post drafts for local service businesses. Return exactly ${candidateCount} draft candidates as JSON with a top-level {"drafts": [...]} object. Each draft must include headline, body, callToAction, and hashtags. Keep each post grounded in the supplied business profile, sound natural for Facebook, avoid hypey spam language, and vary the angle across educational, trust-building, promotional, local/community, and practical problem-solving themes. Mention the business name and service area naturally. Include a clear contact CTA that uses the phone number and website when appropriate. Hashtags should be short, clean, and omit the # symbol. Build the set for a ${cadenceContext}.`;
+  const instructions = `You create high-quality Facebook post drafts for local service businesses. Return JSON with a top-level {"drafts": [...], "summary": "..."} object. Create exactly ${postCount} final approved weekly post drafts. Each draft must include headline, body, callToAction, and hashtags. Keep each post grounded in the supplied business profile, sound natural for Facebook, avoid hypey spam language, vary the angle across the set, and make the drafts ready to publish without another approval pass. Mention the business name and service area naturally. Include a clear contact CTA that uses the phone number and website when appropriate. Hashtags should be short, clean, and omit the # symbol. Build the set for a ${cadenceContext}.`;
 
-  const candidatePayload = await callOpenAiJson<CandidateResponse>(
-    generationInstructions,
-    JSON.stringify({ profile, approvedCount, candidateCount, cadenceDays: options.cadenceDays ?? [], cadenceLabel: options.cadenceLabel ?? null, goal: `Generate ${candidateCount} candidate weekly Facebook posts for a plan that keeps ${approvedCount} approved posts.` }),
+  const payload = await callOpenAiJson<DraftResponse>(
+    instructions,
+    JSON.stringify({
+      profile,
+      postCount,
+      cadenceDays: options.cadenceDays ?? [],
+      cadenceLabel: options.cadenceLabel ?? null,
+      goal: `Generate ${postCount} ready-to-publish weekly Facebook posts.`,
+    }),
   );
 
-  const candidates = Array.isArray(candidatePayload.drafts)
-    ? candidatePayload.drafts.map(normalizeDraft).filter((draft) => draft.headline && draft.body && draft.callToAction)
+  const drafts = Array.isArray(payload.drafts)
+    ? payload.drafts.map(normalizeDraft).filter((draft) => draft.headline && draft.body && draft.callToAction)
     : [];
 
-  if (candidates.length < candidateCount) {
-    throw new Error(`OpenAI returned ${candidates.length} candidate drafts instead of ${candidateCount}.`);
+  if (drafts.length !== postCount) {
+    throw new Error(`OpenAI returned ${drafts.length} drafts instead of ${postCount}.`);
   }
 
-  const reviewInstructions = `You are the second-pass reviewer for weekly Facebook post drafts. Review the supplied ${candidateCount} candidate drafts and select the best ${approvedCount} for final approval. Improve clarity, local relevance, specificity, and polish while keeping them realistic and non-spammy. Return JSON with {"approvedDrafts": [...], "summary": "..."}. The approvedDrafts array must contain exactly ${approvedCount} finalized drafts with headline, body, callToAction, and hashtags. Prefer variety across the approved set, and make sure the final set fits a ${cadenceContext}.`;
-
-  const reviewPayload = await callOpenAiJson<ReviewResponse>(
-    reviewInstructions,
-    JSON.stringify({ profile, candidates }),
-  );
-
-  const approved = Array.isArray(reviewPayload.approvedDrafts)
-    ? reviewPayload.approvedDrafts.map(normalizeDraft)
-    : [];
-
-  if (approved.length !== approvedCount) {
-    throw new Error(`OpenAI review returned ${approved.length} approved drafts instead of ${approvedCount}.`);
-  }
-
-  approved.forEach((draft, index) => {
+  drafts.forEach((draft, index) => {
     const validation = validateDraft(draft, profile);
     if (!validation.valid) {
-      throw new Error(`Approved draft ${index + 1} failed validation: ${validation.issues.join(", ")}`);
+      throw new Error(`Draft ${index + 1} failed validation: ${validation.issues.join(", ")}`);
     }
   });
 
   return {
-    candidates: candidates.slice(0, candidateCount),
-    approved,
-    reviewSummary: reviewPayload.summary?.trim() || null,
+    drafts,
+    reviewSummary: payload.summary?.trim() || null,
     model: OPENAI_MODEL,
   };
 }

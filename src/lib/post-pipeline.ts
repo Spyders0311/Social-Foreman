@@ -11,19 +11,10 @@ export const WEEKDAY_ORDER = [
   "Saturday",
 ] as const;
 
-export type PostLifecycleState =
-  | "candidate"
-  | "approved"
-  | "selected"
-  | "scheduled"
-  | "publishing"
-  | "published"
-  | "failed"
-  | "rejected";
+export type WeeklyPostStatus = "queued" | "publishing" | "published" | "failed";
 
 export type WeeklyGenerationResult = {
-  candidates: BusinessProfileDraft[];
-  approved: BusinessProfileDraft[];
+  drafts: BusinessProfileDraft[];
   reviewSummary: string | null;
   model: string;
 };
@@ -119,6 +110,29 @@ export function computeWeeklyScheduleSlots(input: {
       scheduledFor: scheduled.toISOString(),
     };
   });
+}
+
+export function assignWeeklyScheduleToDrafts(input: {
+  drafts: BusinessProfileDraft[];
+  weekStartDate: string;
+  cadenceDays: string[];
+  postingHourUtc?: number;
+}) {
+  const slots = computeWeeklyScheduleSlots({
+    weekStartDate: input.weekStartDate,
+    cadenceDays: input.cadenceDays,
+    postingHourUtc: input.postingHourUtc,
+  });
+
+  if (input.drafts.length !== slots.length) {
+    throw new Error(`Expected ${slots.length} drafts but found ${input.drafts.length}.`);
+  }
+
+  return input.drafts.map((draft, index) => ({
+    draft,
+    cadenceDay: slots[index]?.dayName ?? null,
+    scheduledFor: slots[index]?.scheduledFor ?? null,
+  }));
 }
 
 export function buildPostMessage(draft: BusinessProfileDraft) {
