@@ -22,14 +22,14 @@ const nextSteps = [
       "Link the exact Facebook Business Page we should publish to so each customer record knows where approved content belongs.",
   },
   {
-    title: "Review your starter batch",
+    title: "Generate a reviewed weekly batch",
     description:
-      "We generate a small batch of starter posts from your profile so you can review direction, tone, and local relevance fast.",
+      "We create 5 candidate Facebook posts from your profile, run a second review pass, then keep only the best 3 approved drafts on your record.",
   },
   {
-    title: "Approve refined posting",
+    title: "Publish on your weekly cadence",
     description:
-      "Once your profile and page are in place, Social Foreman can refine the drafts and keep your Monday, Wednesday, and Friday posting rhythm moving.",
+      "Once your profile and page are in place, Social Foreman can keep your Monday, Wednesday, and Friday posting rhythm moving with reviewed content.",
   },
 ];
 
@@ -74,7 +74,7 @@ function getStatusMessage(flowStatus: string | null, missing: string | null) {
     return {
       tone: "success",
       title: "Business profile saved",
-      body: "We stored the onboarding details and generated a starter batch of review drafts for this customer record.",
+      body: "We stored the onboarding details and generated a reviewed weekly batch with the top 3 approved drafts for this customer record.",
     } as const;
   }
 
@@ -192,7 +192,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
                 Welcome to Social Foreman.
               </h1>
               <p className="mt-5 max-w-3xl text-lg text-[#e8dcc9]">
-                Your checkout is done. Now let’s turn that into a usable business profile, connect the right Facebook page, and generate a small starter batch of posts for review before anything gets published.
+                Your checkout is done. Now let’s turn that into a usable business profile, connect the right Facebook page, and generate a reviewed weekly batch before anything gets published.
               </p>
             </div>
             <div className="flex flex-col gap-3 lg:items-end">
@@ -209,7 +209,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
           </div>
 
           <div className="mt-8 rounded-2xl bg-white/8 p-5 text-sm leading-7 text-[#f6ead8]">
-            Fill out the business profile below, then link Facebook. The in-app rule-based generator is used as a starter to create a review batch, not as the final promise to the customer.
+            Fill out the business profile below, then link Facebook. Social Foreman now attempts a two-pass GPT workflow that creates 5 candidates, reviews them down to the best 3, and only stores that approved batch. The older rule-based generator stays in place as fallback.
           </div>
 
           {statusMessage ? (
@@ -248,7 +248,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
               </p>
               <h2 className="text-3xl font-bold text-[#132027]">Capture the business context once.</h2>
               <p className="text-lg text-[#405058]">
-                This saves directly to the onboarding record tied to checkout so Social Foreman can generate a relevant starter batch, refine it, and map publishing to the right connected page.
+                This saves directly to the onboarding record tied to checkout so Social Foreman can generate a relevant reviewed weekly batch and map publishing to the right connected page.
               </p>
             </div>
 
@@ -394,7 +394,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
                 type="submit"
                 className="inline-flex rounded-full bg-[#132027] px-6 py-3 font-semibold text-[#f8f2e8] transition hover:bg-[#21414b]"
               >
-                Save profile and generate starter batch
+                Save profile and generate reviewed top 3 batch
               </button>
             </form>
           </section>
@@ -410,7 +410,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
                     Link the publishing destination.
                   </h2>
                   <p className="mt-3 text-lg text-[#405058]">
-                    The selected page is saved on the same customer onboarding record as the business profile and starter batch so reviewed posts can be routed correctly.
+                    The selected page is saved on the same customer onboarding record as the business profile and reviewed top-3 batch so approved posts can be routed correctly.
                   </p>
                 </div>
                 <a
@@ -492,20 +492,20 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
 
             <section className="rounded-3xl bg-[#132027] p-8 text-[#f8f2e8] sm:p-10">
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#d7c6a1]">
-                Starter batch preview
+                Reviewed weekly batch
               </p>
               <h2 className="mt-3 text-3xl font-bold">
-                {batchReady ? "Your review batch is ready." : "Starter batch unlocks as onboarding fills in."}
+                {batchReady ? "Your top 3 approved drafts are ready." : "Your reviewed weekly batch unlocks as onboarding fills in."}
               </h2>
               <p className="mt-4 text-[#d8cec1]">
-                These are internal first-pass drafts generated from your structured profile. They are meant to speed up review and refinement before scheduled posting, not serve as the final customer-facing promise on their own.
+                Social Foreman aims to generate 5 candidate posts, review and refine them with a second pass, then store only the final top 3 approved drafts for the week. If the AI path fails, the app falls back to the internal rule-based generator.
               </p>
 
               {draftsToRender.length ? (
                 <div className="mt-6 space-y-4">
-                  {draftsToRender.slice(0, 4).map((draft, index) => (
+                  {draftsToRender.slice(0, 3).map((draft, index) => (
                     <div key={`${draft.headline}-${index}`} className="rounded-2xl bg-white/8 p-5">
-                      <p className="text-xs uppercase tracking-[0.15em] text-[#d7c6a1]">Draft {index + 1}</p>
+                      <p className="text-xs uppercase tracking-[0.15em] text-[#d7c6a1]">Approved Draft {index + 1}</p>
                       <p className="mt-2 text-xl font-semibold">{draft.headline}</p>
                       <p className="mt-3 whitespace-pre-wrap text-[#f6ead8]">{draft.body}</p>
                       <p className="mt-3 text-sm text-[#f6ead8]"><span className="font-semibold">CTA:</span> {draft.callToAction}</p>
@@ -514,20 +514,29 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
                       ) : null}
                     </div>
                   ))}
+
+                  {context.record?.weekly_review_summary ? (
+                    <div className="rounded-2xl border border-white/15 bg-white/8 p-5 text-sm text-[#f6ead8]">
+                      <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#d7c6a1]">Review notes</p>
+                      <p className="mt-2">{context.record.weekly_review_summary}</p>
+                    </div>
+                  ) : null}
                 </div>
               ) : businessProfileReady ? (
                 <div className="mt-6 rounded-2xl border border-white/15 bg-white/8 p-5 text-sm text-[#f6ead8]">
-                  Your saved business info is enough to create a starter batch preview, but it has not been stored yet. Save the onboarding form again to lock it onto the customer record.
+                  Your saved business info is enough to create a preview batch, but it has not been stored yet. Save the onboarding form again to lock the reviewed top-3 batch onto the customer record.
                 </div>
               ) : (
                 <div className="mt-6 rounded-2xl border border-white/15 bg-white/8 p-5 text-sm text-[#f6ead8]">
-                  Complete the business profile form to generate your first review batch. Link Facebook too if you want the record fully ready for publishing.
+                  Complete the business profile form to generate your first reviewed top-3 batch. Link Facebook too if you want the record fully ready for publishing.
                 </div>
               )}
 
               <div className="mt-6 grid gap-3 text-sm text-[#d8cec1]">
                 <div className="rounded-2xl bg-white/8 px-4 py-3">Business profile: {businessProfileReady ? "saved" : "not saved yet"}</div>
-                <div className="rounded-2xl bg-white/8 px-4 py-3">Draft batch: {batchReady ? "generated for review" : "not generated yet"}</div>
+                <div className="rounded-2xl bg-white/8 px-4 py-3">Weekly draft batch: {batchReady ? "reviewed top 3 saved" : "not generated yet"}</div>
+                <div className="rounded-2xl bg-white/8 px-4 py-3">Generation method: {context.record?.draft_generation_method ?? "not run yet"}</div>
+                <div className="rounded-2xl bg-white/8 px-4 py-3">Candidate pool reviewed: {context.record?.weekly_candidate_count ?? 0}</div>
                 <div className="rounded-2xl bg-white/8 px-4 py-3">Facebook page: {pageReady ? context.selectedPageName ?? "linked" : "not linked yet"}</div>
                 <div className="rounded-2xl bg-white/8 px-4 py-3">Onboarding status: {context.onboardingStatus ?? "unknown"}</div>
               </div>
