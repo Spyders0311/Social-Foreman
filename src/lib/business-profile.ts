@@ -46,6 +46,20 @@ function sanitizeLine(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
 
+function normalizeOptionalUrl(value: string) {
+  const sanitized = sanitizeLine(value);
+
+  if (!sanitized) {
+    return "";
+  }
+
+  if (/^https?:\/\//i.test(sanitized)) {
+    return sanitized;
+  }
+
+  return `https://${sanitized}`;
+}
+
 export function normalizeBusinessProfileInput(
   input: Partial<Omit<BusinessProfileInput, "primaryServices">> & { primaryServices?: string[] | string },
 ): BusinessProfileInput {
@@ -62,8 +76,8 @@ export function normalizeBusinessProfileInput(
     serviceArea: sanitizeLine(String(input.serviceArea ?? "")),
     primaryServices: services,
     phone: sanitizeLine(String(input.phone ?? "")),
-    websiteUrl: sanitizeLine(String(input.websiteUrl ?? "")),
-    facebookPageUrl: sanitizeLine(String(input.facebookPageUrl ?? "")),
+    websiteUrl: normalizeOptionalUrl(String(input.websiteUrl ?? "")),
+    facebookPageUrl: normalizeOptionalUrl(String(input.facebookPageUrl ?? "")),
     offerSummary: sanitizeLine(String(input.offerSummary ?? "")),
     differentiators: sanitizeLine(String(input.differentiators ?? "")),
     tone: sanitizeLine(String(input.tone ?? "")),
@@ -141,7 +155,7 @@ export function generateFirstPostDraft(profile: BusinessProfileInput): BusinessP
 }
 
 export function generateDraftBatch(profile: BusinessProfileInput, count = 4): BusinessProfileDraftBatch {
-  const safeCount = Math.max(1, Math.min(count, 6));
+  const safeCount = Math.max(1, Math.min(count, 5));
   const servicesLine = buildServiceList(profile.primaryServices);
   const primaryService = profile.primaryServices[0] ?? profile.businessType.toLowerCase();
   const secondaryService = profile.primaryServices[1] ?? profile.primaryServices[0] ?? "service work";
@@ -180,6 +194,12 @@ export function generateDraftBatch(profile: BusinessProfileInput, count = 4): Bu
       body: `If you need ${servicesLine} in ${profile.serviceArea}, ${profile.businessName} is ready to help. ${offerLine} ${audienceLine}`,
       callToAction: `Call ${profile.phone} today to get a quote${profile.websiteUrl ? ` or learn more at ${profile.websiteUrl}` : ""}.`,
       hashtags: [profile.businessName, profile.serviceArea, servicesLine, "book now"].map(buildHashtag).filter(Boolean).slice(0, 5),
+    },
+    {
+      headline: `${profile.businessName} keeps ${profile.serviceArea} covered with reliable ${primaryService}`,
+      body: `${profile.businessName} helps customers across ${profile.serviceArea} stay on top of ${servicesLine}. ${differentiatorLine} ${offerLine}`,
+      callToAction: `Call ${profile.phone}${profile.websiteUrl ? ` or visit ${profile.websiteUrl}` : ""} to schedule service.`,
+      hashtags: [profile.businessName, profile.serviceArea, primaryService, "trusted local service"].map(buildHashtag).filter(Boolean).slice(0, 5),
     },
   ];
 

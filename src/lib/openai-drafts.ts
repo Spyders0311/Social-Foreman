@@ -145,9 +145,6 @@ function validateDraft(draft: BusinessProfileDraft, profile: BusinessProfileInpu
     issues.push("body length");
   }
 
-  if (!draft.callToAction || draft.callToAction.length < 12 || draft.callToAction.length > 140) {
-    issues.push("call-to-action length");
-  }
 
   if (!draft.hashtags.length || draft.hashtags.length > 5) {
     issues.push("hashtag count");
