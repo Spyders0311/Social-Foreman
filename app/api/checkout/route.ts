@@ -36,15 +36,22 @@ export async function POST(request: Request) {
     const cadenceDays = cadenceForPostsPerWeek(plan.postsPerWeek);
     const postingCadenceLabel = formatCadenceLabel(plan.postsPerWeek, cadenceDays);
 
+    const stripePriceId =
+      plan.key === "vip"
+        ? process.env.STRIPE_VIP_PRICE_ID
+        : process.env.STRIPE_STARTER_PRICE_ID;
+
+    if (!stripePriceId) {
+      throw new Error(`Missing Stripe price ID for plan: ${plan.key}`);
+    }
+
     const body = new URLSearchParams({
       mode: "subscription",
       success_url: `${origin}/success?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/?checkout=cancel`,
       "line_items[0][quantity]": "1",
-      "line_items[0][price_data][currency]": "usd",
-      "line_items[0][price_data][unit_amount]": String(plan.priceMonthlyCents),
-      "line_items[0][price_data][recurring][interval]": "month",
-      "line_items[0][price_data][product_data][name]": `Social Foreman ${plan.name}`,
+      "line_items[0][price]": stripePriceId,
+      allow_promotion_codes: "true",
       "metadata[plan]": plan.stripeMetadataValue,
       "metadata[plan_tier]": plan.key,
       "metadata[plan_name]": plan.name,
