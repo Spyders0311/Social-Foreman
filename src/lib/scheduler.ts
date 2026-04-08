@@ -78,6 +78,7 @@ export async function generateWeeklyPlanPipeline(input: {
     generationMethod = `openai-${reviewed.model}`;
     generationModel = reviewed.model;
   } catch (error) {
+    console.error("OpenAI weekly draft generation failed:", error);
     console.error("Weekly plan generation fell back to rules", {
       onboardingId: record.id,
       reason: error instanceof Error ? error.message : "Unknown error",
