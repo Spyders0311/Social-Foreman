@@ -9,6 +9,8 @@ import { fetchCheckoutSession } from "./stripe";
 export type SuccessPageContext = {
   checkoutStatus: string | null;
   facebookStatus: string | null;
+  onboardingStatus: string | null;
+  onboardingFlowStatus: string | null;
   pagesCount: string | null;
   selectedPageId: string | null;
   selectedPageName: string | null;
@@ -131,6 +133,8 @@ export async function resolveSuccessPageContext(
   return {
     checkoutStatus: getSingleParam(params?.checkout) ?? null,
     facebookStatus,
+    onboardingStatus: record?.onboarding_status ?? null,
+    onboardingFlowStatus: getSingleParam(params?.onboarding) ?? null,
     pagesCount,
     selectedPageId,
     selectedPageName,
