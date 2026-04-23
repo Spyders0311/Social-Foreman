@@ -461,8 +461,18 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
 
               {pageReady ? (
                 <div className="mt-6 rounded-2xl border border-[#b7d5c2] bg-[#edf7f0] p-4 text-[#214b33]">
-                  Facebook is fully linked and ready for publishing. Connected page: {context.selectedPageName ?? "your page"}
-                  {context.selectedPageId ? ` (${context.selectedPageId})` : ""}.
+                  <p>
+                    Facebook is fully linked and ready for publishing. Connected page: {context.selectedPageName ?? "your page"}
+                    {context.selectedPageId ? ` (${context.selectedPageId})` : ""}.
+                  </p>
+                  {context.onboardingId ? (
+                    <a
+                      href={`/dashboard?onboardingId=${encodeURIComponent(context.onboardingId)}`}
+                      className="mt-3 inline-flex items-center rounded-full bg-[#132027] px-5 py-2.5 text-sm font-semibold text-[#f8f2e8] transition hover:bg-[#21414b]"
+                    >
+                      Open Page Dashboard →
+                    </a>
+                  ) : null}
                 </div>
               ) : context.facebookStatus === "select_page" ? (
                 <div className="mt-6 rounded-2xl border border-[#b7d5c2] bg-[#edf7f0] p-4 text-[#214b33]">
