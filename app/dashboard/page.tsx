@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { fetchCustomerFacebookConnection } from "../../src/lib/customer-store";
+import { createServerClient } from "../../src/lib/supabase-server";
 import { PostComposer } from "./PostComposer";
 import {
   fetchFacebookPageInfo,
@@ -66,15 +67,15 @@ function NoParamsState() {
     <div className="flex min-h-[60vh] items-center justify-center px-6">
       <div className="w-full max-w-md rounded-3xl border border-[#d9d2c3] bg-white p-10 text-center shadow-sm">
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#846b42]">Dashboard</p>
-        <h1 className="mt-4 text-3xl font-bold text-[#132027]">No account linked</h1>
+        <h1 className="mt-4 text-3xl font-bold text-[#132027]">Sign in to continue</h1>
         <p className="mt-4 text-[#405058]">
-          Open this page from your onboarding confirmation link, or complete the checkout and Facebook connection flow first.
+          Sign in with your email to access your Social Foreman dashboard.
         </p>
         <a
-          href="/success"
+          href="/login"
           className="mt-6 inline-flex rounded-full bg-[#132027] px-6 py-3 font-semibold text-[#f8f2e8] transition hover:bg-[#21414b]"
         >
-          Go to onboarding
+          Sign in
         </a>
       </div>
     </div>
@@ -90,6 +91,25 @@ function NotFoundState() {
         <p className="mt-4 text-[#405058]">
           We could not find a customer record for those details. Try opening the dashboard from your original onboarding link.
         </p>
+      </div>
+    </div>
+  );
+}
+
+function NoSubscriptionState() {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center px-6">
+      <div className="w-full max-w-md rounded-3xl border border-[#d9d2c3] bg-white p-10 text-center shadow-sm">
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#846b42]">No subscription</p>
+        <h1 className="mt-4 text-3xl font-bold text-[#132027]">No subscription found</h1>
+        <p className="mt-4 text-[#405058]">
+          No subscription found for this account. Need help?{" "}
+          <a href="mailto:support@socialforeman.com" className="font-semibold underline">
+            Contact support
+          </a>
+          .
+        </p>
+        <SignOutButton />
       </div>
     </div>
   );
@@ -170,6 +190,34 @@ function NoPagesState(props: {
         </a>
       </div>
     </div>
+  );
+}
+
+// ─── Header actions (sign out + manage subscription) ─────────────────────────
+
+function SignOutButton() {
+  return (
+    <form action="/api/auth/signout" method="POST">
+      <button
+        type="submit"
+        className="mt-6 rounded-full border border-[#d9d2c3] bg-white px-5 py-2 text-sm font-semibold text-[#132027] transition hover:bg-[#f7f5ef]"
+      >
+        Sign out
+      </button>
+    </form>
+  );
+}
+
+function ManageSubscriptionButton() {
+  return (
+    <form action="/api/stripe/portal" method="POST">
+      <button
+        type="submit"
+        className="rounded-full border border-[#d9d2c3] bg-white px-5 py-2 text-sm font-semibold text-[#132027] transition hover:bg-[#f7f5ef]"
+      >
+        Manage subscription
+      </button>
+    </form>
   );
 }
 
@@ -347,7 +395,23 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const posted = getString(params?.posted);
   const postError = getString(params?.error);
 
-  if (!onboardingId && !stripeCustomerId && !stripeSubscriptionId && !customerEmail) {
+  // Attempt auth-first lookup via logged-in user.
+  let authEmail: string | null = null;
+  try {
+    const supabase = await createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    authEmail = user?.email ?? null;
+  } catch {
+    // Env vars may not be set in all environments — fall through to param-based lookup.
+  }
+
+  // Resolve which email/id to use for lookup.
+  // Auth session takes precedence; fall back to URL params for backwards compat (Meta App Review link).
+  const lookupEmail = authEmail ?? customerEmail;
+
+  const hasLookupParams = !!(onboardingId || stripeCustomerId || stripeSubscriptionId || lookupEmail);
+
+  if (!hasLookupParams) {
     return <NoParamsState />;
   }
 
@@ -355,8 +419,13 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     onboardingId: onboardingId ?? undefined,
     stripeCustomerId: stripeCustomerId ?? undefined,
     stripeSubscriptionId: stripeSubscriptionId ?? undefined,
-    customerEmail: customerEmail ?? undefined,
+    customerEmail: lookupEmail ?? undefined,
   }).catch(() => null);
+
+  // If the user is logged in but has no record, show the no-subscription state.
+  if (!record && authEmail) {
+    return <NoSubscriptionState />;
+  }
 
   if (!record) {
     return <NotFoundState />;
@@ -441,6 +510,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   return (
     <div className="min-h-screen bg-[#f7f5ef] text-[#132027]">
       <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-12 sm:px-10">
+
+        {/* Dashboard header actions */}
+        <div className="flex items-center justify-end gap-3">
+          <ManageSubscriptionButton />
+          {authEmail ? <SignOutButton /> : null}
+        </div>
 
         {/* Success / error banners */}
         {posted === "success" ? (
