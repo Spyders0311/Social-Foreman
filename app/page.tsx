@@ -11,19 +11,19 @@ const highlights = [
 
 const outcomes = [
   {
-    title: "Stay visible locally",
+    title: "Wake up your dead Facebook page",
     description:
-      "Show up in your town consistently with Facebook posts written around your services, service area, and real customer concerns.",
+      "Inactive pages get near-zero distribution. Consistent posting 3x a week tells Facebook's algorithm you're active — and reach follows. Most businesses see 5x–20x more people viewing their content within 90 days.",
   },
   {
-    title: "Sound like your business",
+    title: "Content that actually builds trust",
     description:
-      "We build personalized post drafts in your tone, then refine them before publishing so the final content feels human, local, and credible.",
+      "Generic posts get ignored. We write real job content — before/after photos, local tips, the kind of posts that make a homeowner think 'these are the people I want to call.' Your trade, your service area, your voice.",
   },
   {
-    title: "Keep owners out of the content grind",
+    title: "Stay focused on the work, not the feed",
     description:
-      "You do not need to invent what to post every week. Social Foreman handles the planning and batch prep while you stay focused on jobs.",
+      "You have jobs to run. Social Foreman handles the planning, writing, and publishing cadence so your page stays active without you having to think about it.",
   },
 ];
 
@@ -111,6 +111,33 @@ export default function Home() {
           </div>
         </section>
 
+        {/* The Dead Page Problem */}
+        <AnimatedSection>
+          <p className="text-center text-sm font-semibold uppercase tracking-[0.2em] text-[#846b42]">
+            Why it matters
+          </p>
+          <h2 className="mt-3 text-center text-3xl font-bold text-[#132027] sm:text-4xl">
+            Your dead Facebook page is leaving money on the table.
+          </h2>
+          <p className="mx-auto mt-6 max-w-2xl text-center text-lg leading-8 text-[#405058]">
+            A dormant page reaches around 200 people a month. Post consistently 3x a week and that number jumps to 5,000–30,000+ — same page, same followers, just consistency. Facebook's algorithm punishes inactivity. Social Foreman fixes it.
+          </p>
+          <div className="mt-10 grid gap-6 md:grid-cols-3">
+            <div className="flex flex-col items-center justify-center rounded-2xl bg-white p-8 text-center shadow-sm">
+              <p className="text-5xl font-bold text-[#132027]">~200</p>
+              <p className="mt-4 font-medium text-[#405058]">Monthly reach, inactive page</p>
+            </div>
+            <div className="flex flex-col items-center justify-center rounded-2xl bg-white p-8 text-center shadow-sm">
+              <p className="text-5xl font-bold text-[#132027]">5k–30k+</p>
+              <p className="mt-4 font-medium text-[#405058]">Monthly reach, posting 3x/week</p>
+            </div>
+            <div className="flex flex-col items-center justify-center rounded-2xl bg-white p-8 text-center shadow-sm">
+              <p className="text-5xl font-bold text-[#132027]">5x–20x</p>
+              <p className="mt-4 font-medium text-[#405058]">Typical reach increase in 60–90 days</p>
+            </div>
+          </div>
+        </AnimatedSection>
+
         {/* How it works */}
         <section>
           <p className="text-center text-sm font-semibold uppercase tracking-[0.2em] text-[#846b42]">
@@ -154,17 +181,15 @@ export default function Home() {
         </AnimatedSection>
 
         {/* What you're buying */}
-        <section className="rounded-3xl border border-[#d9d2c3] bg-white p-8 sm:p-12">
+        <section className="rounded-3xl border border-[#d9d2c3] bg-white p-8 sm:p-12 shadow-sm">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#846b42]">
             What you are actually buying
           </p>
           <h2 className="mt-4 text-3xl font-bold text-[#132027] sm:text-4xl">
-            A consistent Facebook presence — not just software.
+            Your dead page, back to work.
           </h2>
-          <p className="mt-4 max-w-3xl text-lg text-[#405058]">
-            The app helps generate the first round of ideas quickly, but the
-            customer-facing promise is a reviewed stream of custom posts that fit
-            your business before they go live.
+          <p className="mt-4 max-w-3xl text-lg text-[#405058] leading-8">
+            The app generates post ideas from your business context, but what you're actually paying for is real, reviewed content that sounds like your business — not generic filler. Local. Specific. The kind of thing that makes a neighbor say "I should call them."
           </p>
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             {deliverables.map((item) => (
@@ -177,6 +202,53 @@ export default function Home() {
               </div>
             ))}
           </div>
+
+          {/* Contrast block: What works vs what doesn't */}
+          <div className="mt-12 overflow-hidden rounded-2xl border border-[#e8e2d9] shadow-sm sm:flex">
+            {/* Left: Bad */}
+            <div className="flex-1 bg-red-50/50 p-8 sm:p-10">
+              <h3 className="text-xl font-bold text-[#8a2f2f]">
+                <span className="mr-2">❌</span> Generic content (gets reach, not customers)
+              </h3>
+              <ul className="mt-6 space-y-4 text-lg text-[#5c3b3b]">
+                <li className="flex gap-3">
+                  <span className="shrink-0 text-red-300">•</span>
+                  "Happy Monday!" and stock images
+                </li>
+                <li className="flex gap-3">
+                  <span className="shrink-0 text-red-300">•</span>
+                  Inspirational quotes with no local relevance
+                </li>
+                <li className="flex gap-3">
+                  <span className="shrink-0 text-red-300">•</span>
+                  Posts that could belong to any business anywhere
+                </li>
+              </ul>
+            </div>
+            {/* Right: Good */}
+            <div className="flex-1 bg-[#f2f8f4] p-8 sm:p-10">
+              <h3 className="text-xl font-bold text-[#1b5e32]">
+                <span className="mr-2">✅</span> What we write instead
+              </h3>
+              <ul className="mt-6 space-y-4 text-lg text-[#2e5239]">
+                <li className="flex gap-3">
+                  <span className="shrink-0 text-[#6ee59b]">•</span>
+                  "Fixed this $8k mistake another company made"
+                </li>
+                <li className="flex gap-3">
+                  <span className="shrink-0 text-[#6ee59b]">•</span>
+                  "Here's why your breaker keeps tripping (and when to call)"
+                </li>
+                <li className="flex gap-3">
+                  <span className="shrink-0 text-[#6ee59b]">•</span>
+                  Before/after job photos with your service area tagged
+                </li>
+              </ul>
+            </div>
+          </div>
+          <p className="mt-8 text-center text-lg font-medium text-[#405058]">
+            Real work. Real trust. That's what turns reach into revenue.
+          </p>
         </section>
 
         {/* Pricing */}
