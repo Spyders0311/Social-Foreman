@@ -33,8 +33,18 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protect /dashboard — redirect unauthenticated users to /login.
-  if (request.nextUrl.pathname.startsWith("/dashboard") && !user) {
+  // Protect /dashboard. Allow legacy onboarding links to pass through.
+  const hasDashboardLookupParam =
+    request.nextUrl.searchParams.has("onboardingId") ||
+    request.nextUrl.searchParams.has("stripeCustomerId") ||
+    request.nextUrl.searchParams.has("stripeSubscriptionId") ||
+    request.nextUrl.searchParams.has("email");
+
+  if (
+    request.nextUrl.pathname.startsWith("/dashboard") &&
+    !user &&
+    !hasDashboardLookupParam
+  ) {
     const loginUrl = new URL("/login", request.url);
     return NextResponse.redirect(loginUrl);
   }

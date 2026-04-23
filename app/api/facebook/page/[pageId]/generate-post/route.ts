@@ -1,4 +1,6 @@
 import { fetchCustomerFacebookConnection } from "../../../../../../src/lib/customer-store";
+import { fetchFacebookPages } from "../../../../../../src/lib/facebook";
+import { createServerClient } from "../../../../../../src/lib/supabase-server";
 
 export const runtime = "nodejs";
 
@@ -15,25 +17,40 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ pageId: string }> },
 ) {
-  await params; // pageId not needed for generation but must be awaited
+  const { pageId } = await params;
 
   try {
     const body = (await request.json()) as {
       onboardingId?: string;
-      stripeCustomerId?: string;
-      stripeSubscriptionId?: string;
-      customerEmail?: string;
     };
 
-    const record = await fetchCustomerFacebookConnection({
-      onboardingId: body.onboardingId || undefined,
-      stripeCustomerId: body.stripeCustomerId || undefined,
-      stripeSubscriptionId: body.stripeSubscriptionId || undefined,
-      customerEmail: body.customerEmail || undefined,
-    });
+    const onboardingId = body.onboardingId?.trim();
+    const supabase = await createServerClient().catch(() => null);
+    const { data: { user } } = supabase
+      ? await supabase.auth.getUser()
+      : { data: { user: null } };
+
+    if (!user?.email && !onboardingId) {
+      return Response.json({ error: "Not authenticated." }, { status: 401 });
+    }
+
+    const record = await fetchCustomerFacebookConnection(
+      user?.email
+        ? { customerEmail: user.email }
+        : { onboardingId: onboardingId || undefined },
+    );
 
     if (!record) {
       return Response.json({ error: "No onboarding record found." }, { status: 404 });
+    }
+
+    if (!record.facebook_long_lived_user_access_token) {
+      return Response.json({ error: "Facebook not connected or token expired." }, { status: 409 });
+    }
+
+    const pages = await fetchFacebookPages(record.facebook_long_lived_user_access_token);
+    if (!pages.some((page) => page.id === pageId)) {
+      return Response.json({ error: "You do not have access to this page." }, { status: 403 });
     }
 
     const {
@@ -99,8 +116,7 @@ export async function POST(
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`OpenAI request failed (${response.status}): ${errorText}`);
+      throw new Error(`OpenAI request failed (${response.status}).`);
     }
 
     const payload = (await response.json()) as {

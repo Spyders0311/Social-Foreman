@@ -225,7 +225,6 @@ function ManageSubscriptionButton() {
 
 function PageIdentityHeader(props: {
   pageInfo: FacebookPageInfo;
-  pageName: string;
 }) {
   const { pageInfo } = props;
   const displayFollowers = pageInfo.followersCount > 0
@@ -307,7 +306,7 @@ function PagePicker(props: {
 
 // ─── Posts feed ──────────────────────────────────────────────────────────────
 
-function PostCard(props: { post: FacebookPagePost; index: number }) {
+function PostCard(props: { post: FacebookPagePost }) {
   const { post } = props;
   return (
     <article className="rounded-2xl border border-[#d9d2c3] bg-white p-6 shadow-sm">
@@ -375,8 +374,8 @@ function PostsFeed(props: { posts: FacebookPagePost[] }) {
 
   return (
     <div className="space-y-4">
-      {posts.map((post, i) => (
-        <PostCard key={post.id} post={post} index={i} />
+      {posts.map((post) => (
+        <PostCard key={post.id} post={post} />
       ))}
     </div>
   );
@@ -536,7 +535,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         ) : null}
 
         {/* Page identity — always visible, required by Meta */}
-        <PageIdentityHeader pageInfo={resolvedPageInfo} pageName={activePage.name} />
+        <PageIdentityHeader pageInfo={resolvedPageInfo} />
 
         {pageInfoError ? (
           <div className="rounded-2xl border border-[#f0d9a6] bg-[#fff8e8] px-5 py-4 text-sm text-[#6a4c12]">
