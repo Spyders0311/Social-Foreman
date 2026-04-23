@@ -3,6 +3,7 @@ import { fetchCustomerFacebookConnection } from "../../src/lib/customer-store";
 import { createServerClient } from "../../src/lib/supabase-server";
 import { PostComposer } from "./PostComposer";
 import { ManageSubscriptionButton } from "./ManageSubscriptionButton";
+import { StatsPanel } from "./StatsPanel";
 import {
   fetchFacebookPageInfo,
   fetchFacebookPagePosts,
@@ -526,6 +527,21 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
         {/* Page identity — always visible, required by Meta */}
         <PageIdentityHeader pageInfo={resolvedPageInfo} />
+
+        {/* Stats panel */}
+        <StatsPanel
+          postsCount={resolvedPosts.length}
+          followersCount={resolvedPageInfo.followersCount > 0 ? resolvedPageInfo.followersCount : resolvedPageInfo.fanCount}
+          connectedSince={record.facebook_connected_at}
+          postingPlan={
+            record.posts_per_week != null
+              ? `${record.posts_per_week}× per week`
+              : record.posting_cadence_label ?? record.plan_name ?? null
+          }
+          totalLikes={resolvedPosts.reduce((sum, p) => sum + p.likesCount, 0)}
+          totalComments={resolvedPosts.reduce((sum, p) => sum + p.commentsCount, 0)}
+          totalShares={resolvedPosts.reduce((sum, p) => sum + p.sharesCount, 0)}
+        />
 
         {pageInfoError ? (
           <div className="rounded-2xl border border-[#f0d9a6] bg-[#fff8e8] px-5 py-4 text-sm text-[#6a4c12]">
