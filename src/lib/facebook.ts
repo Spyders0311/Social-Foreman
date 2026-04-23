@@ -167,6 +167,100 @@ export async function fetchFacebookPages(accessToken: string): Promise<FacebookP
   }));
 }
 
+type FacebookPageInfoResponse = {
+  id?: string;
+  name?: string;
+  picture?: { data?: { url?: string } };
+  followers_count?: number;
+  fan_count?: number;
+  error?: { message?: string };
+};
+
+type FacebookPagePostsResponse = {
+  data?: Array<{
+    id: string;
+    message?: string;
+    created_time?: string;
+    full_picture?: string;
+    permalink_url?: string;
+    likes?: { summary?: { total_count?: number } };
+    comments?: { summary?: { total_count?: number } };
+    shares?: { count?: number };
+  }>;
+  error?: { message?: string };
+};
+
+export type FacebookPageInfo = {
+  id: string;
+  name: string;
+  pictureUrl: string | null;
+  followersCount: number;
+  fanCount: number;
+};
+
+export type FacebookPagePost = {
+  id: string;
+  message: string | null;
+  createdTime: string | null;
+  fullPicture: string | null;
+  permalinkUrl: string | null;
+  likesCount: number;
+  commentsCount: number;
+  sharesCount: number;
+};
+
+export async function fetchFacebookPageInfo(pageId: string, pageAccessToken: string): Promise<FacebookPageInfo> {
+  const params = new URLSearchParams({
+    fields: "id,name,picture,followers_count,fan_count",
+    access_token: pageAccessToken,
+  });
+
+  const response = await fetch(
+    `https://graph.facebook.com/v22.0/${encodeURIComponent(pageId)}?${params}`,
+  );
+  const data = (await response.json()) as FacebookPageInfoResponse;
+
+  if (!response.ok) {
+    throw new Error(data.error?.message ?? "Unable to fetch Facebook page info.");
+  }
+
+  return {
+    id: data.id ?? pageId,
+    name: data.name ?? "Unknown Page",
+    pictureUrl: data.picture?.data?.url ?? null,
+    followersCount: data.followers_count ?? 0,
+    fanCount: data.fan_count ?? 0,
+  };
+}
+
+export async function fetchFacebookPagePosts(pageId: string, pageAccessToken: string): Promise<FacebookPagePost[]> {
+  const params = new URLSearchParams({
+    fields: "id,message,created_time,full_picture,permalink_url,likes.summary(true),comments.summary(true),shares",
+    limit: "10",
+    access_token: pageAccessToken,
+  });
+
+  const response = await fetch(
+    `https://graph.facebook.com/v22.0/${encodeURIComponent(pageId)}/posts?${params}`,
+  );
+  const data = (await response.json()) as FacebookPagePostsResponse;
+
+  if (!response.ok) {
+    throw new Error(data.error?.message ?? "Unable to fetch Facebook page posts.");
+  }
+
+  return (data.data ?? []).map((post) => ({
+    id: post.id,
+    message: post.message ?? null,
+    createdTime: post.created_time ?? null,
+    fullPicture: post.full_picture ?? null,
+    permalinkUrl: post.permalink_url ?? null,
+    likesCount: post.likes?.summary?.total_count ?? 0,
+    commentsCount: post.comments?.summary?.total_count ?? 0,
+    sharesCount: post.shares?.count ?? 0,
+  }));
+}
+
 export async function publishFacebookPagePost(input: {
   pageId: string;
   pageAccessToken: string;
