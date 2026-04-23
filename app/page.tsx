@@ -66,46 +66,48 @@ export default function Home() {
 
         {/* Hero */}
         <section className="animate-fade-slide-up rounded-3xl bg-gradient-to-br from-[#132027] to-[#21414b] p-8 text-[#f8f2e8] sm:p-14">
-          {/* Logo lockup */}
-          <div className="mb-8 flex items-center gap-4">
-            <Image
-              src="/social-foreman-logo.png"
-              alt="Social Foreman"
-              width={64}
-              height={64}
-              className="rounded-xl ring-2 ring-white/10"
-            />
-            <div>
-              <p className="text-lg font-bold tracking-tight text-[#f8f2e8]">Social Foreman</p>
-              <p className="text-sm text-[#d7c6a1]">Facebook content for local businesses</p>
+          <div className="flex flex-col gap-10 lg:flex-row lg:items-center lg:justify-between">
+            {/* Left: copy */}
+            <div className="flex-1">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#8ba0a6]/40 bg-white/10 px-4 py-1.5 text-sm text-[#d7c6a1]">
+                <span className="text-[#6ee59b]">✓</span>
+                No contracts · Cancel anytime
+              </div>
+              <h1 className="mt-6 max-w-xl text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
+                Your Facebook page, <span className="text-[#d69f44] whitespace-nowrap">on autopilot.</span>
+                <br />
+                Built for the trades.
+              </h1>
+              <p className="mt-6 max-w-lg text-lg leading-8 text-[#e8dcc9]">
+                Stay visible in your local market without becoming your own marketing
+                department. We write the posts, you approve them, they go live.
+              </p>
+              <div className="mt-10 flex flex-wrap gap-4">
+                <a
+                  href="#pricing"
+                  className="inline-flex rounded-full bg-[#d69f44] px-8 py-3.5 text-base font-semibold text-[#17232a] transition hover:bg-[#efb356]"
+                >
+                  Get Started
+                </a>
+                <a
+                  href="/login"
+                  className="inline-flex rounded-full border border-[#8ba0a6]/50 px-8 py-3.5 text-base font-semibold text-[#f8f2e8] transition hover:bg-white/10"
+                >
+                  Log In
+                </a>
+              </div>
             </div>
-          </div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#8ba0a6]/40 bg-white/10 px-4 py-1.5 text-sm text-[#d7c6a1]">
-            <span className="text-[#6ee59b]">✓</span>
-            No contracts · Cancel anytime
-          </div>
-          <h1 className="mt-6 max-w-4xl text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
-            Your Facebook page, <span className="text-[#d69f44] whitespace-nowrap">on autopilot.</span>
-            <br />
-            Built for the trades.
-          </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-[#e8dcc9]">
-            Stay visible in your local market without becoming your own marketing
-            department. We write the posts, you approve them, they go live.
-          </p>
-          <div className="mt-10 flex flex-wrap gap-4">
-            <a
-              href="#pricing"
-              className="inline-flex rounded-full bg-[#d69f44] px-8 py-3.5 text-base font-semibold text-[#17232a] transition hover:bg-[#efb356]"
-            >
-              Get Started
-            </a>
-            <a
-              href="/login"
-              className="inline-flex rounded-full border border-[#8ba0a6]/50 px-8 py-3.5 text-base font-semibold text-[#f8f2e8] transition hover:bg-white/10"
-            >
-              Log In
-            </a>
+            {/* Right: logo */}
+            <div className="flex shrink-0 items-center justify-center lg:justify-end">
+              <Image
+                src="/social-foreman-logo.png"
+                alt="Social Foreman"
+                width={240}
+                height={240}
+                className="rounded-3xl opacity-95 drop-shadow-2xl"
+                priority
+              />
+            </div>
           </div>
         </section>
 
