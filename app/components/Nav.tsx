@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { createServerClient } from "../../src/lib/supabase-server";
 
 export default async function Nav() {
@@ -16,11 +17,15 @@ export default async function Nav() {
   return (
     <nav className="sticky top-0 z-50 border-b border-[#e8e2d9] bg-white/80 shadow-sm backdrop-blur-sm">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4 sm:px-10 lg:px-16">
-        <Link
-          href="/"
-          className="text-xl font-bold tracking-tight text-[#132027]"
-        >
-          Social Foreman
+        <Link href="/" className="flex items-center gap-2.5">
+          <Image
+            src="/social-foreman-logo.png"
+            alt="Social Foreman"
+            width={36}
+            height={36}
+            className="rounded-md"
+          />
+          <span className="text-xl font-bold tracking-tight text-[#132027]">Social Foreman</span>
         </Link>
 
         <div className="flex items-center gap-3">

@@ -70,8 +70,7 @@ export default function Home() {
             No contracts · Cancel anytime
           </div>
           <h1 className="mt-6 max-w-4xl text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
-            Your Facebook page,{" "}
-            <span className="text-[#d69f44]">on autopilot.</span>
+            Your Facebook page, <span className="text-[#d69f44] whitespace-nowrap">on autopilot.</span>
             <br />
             Built for the trades.
           </h1>
