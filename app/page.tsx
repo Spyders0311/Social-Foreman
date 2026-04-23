@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { PLAN_CONFIG } from "../src/lib/plans";
 import Nav from "./components/Nav";
 import { AnimatedSection } from "./components/AnimatedSection";
@@ -65,6 +66,20 @@ export default function Home() {
 
         {/* Hero */}
         <section className="animate-fade-slide-up rounded-3xl bg-gradient-to-br from-[#132027] to-[#21414b] p-8 text-[#f8f2e8] sm:p-14">
+          {/* Logo lockup */}
+          <div className="mb-8 flex items-center gap-4">
+            <Image
+              src="/social-foreman-logo.png"
+              alt="Social Foreman"
+              width={64}
+              height={64}
+              className="rounded-xl ring-2 ring-white/10"
+            />
+            <div>
+              <p className="text-lg font-bold tracking-tight text-[#f8f2e8]">Social Foreman</p>
+              <p className="text-sm text-[#d7c6a1]">Facebook content for local businesses</p>
+            </div>
+          </div>
           <div className="inline-flex items-center gap-2 rounded-full border border-[#8ba0a6]/40 bg-white/10 px-4 py-1.5 text-sm text-[#d7c6a1]">
             <span className="text-[#6ee59b]">✓</span>
             No contracts · Cancel anytime
