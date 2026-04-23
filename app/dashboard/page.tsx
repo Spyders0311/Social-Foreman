@@ -4,6 +4,7 @@ import { createServerClient } from "../../src/lib/supabase-server";
 import { PostComposer } from "./PostComposer";
 import { ManageSubscriptionButton } from "./ManageSubscriptionButton";
 import { StatsPanel } from "./StatsPanel";
+import Nav from "../components/Nav";
 import {
   fetchFacebookPageInfo,
   fetchFacebookPagePosts,
@@ -125,19 +126,44 @@ function ConnectFacebookState(props: {
 }) {
   const connectHref = buildConnectHref(props);
   return (
-    <div className="flex min-h-[60vh] items-center justify-center px-6">
-      <div className="w-full max-w-md rounded-3xl border border-[#d9d2c3] bg-white p-10 text-center shadow-sm">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#1877f2]">Facebook</p>
-        <h1 className="mt-4 text-3xl font-bold text-[#132027]">Connect your Facebook Page</h1>
-        <p className="mt-4 text-[#405058]">
-          You need to connect a Facebook Page before the dashboard can show your content and engagement data.
+    <div className="flex min-h-[60vh] items-center justify-center px-6 py-12">
+      <div className="w-full max-w-lg rounded-3xl border border-[#d9d2c3] bg-white p-10 text-center shadow-sm">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#e8f0fe] text-3xl">
+          📘
+        </div>
+        <p className="mt-5 text-sm font-semibold uppercase tracking-[0.18em] text-[#1877f2]">
+          One step to go
         </p>
+        <h1 className="mt-3 text-3xl font-bold text-[#132027]">
+          Connect your Facebook Page
+        </h1>
+        <p className="mt-4 leading-7 text-[#405058]">
+          You&apos;re almost there. Connect your Facebook Business Page to start
+          generating and publishing posts. It takes about 2 minutes.
+        </p>
+        <div className="mt-6 space-y-3 text-left text-sm text-[#405058]">
+          <div className="flex items-start gap-3 rounded-2xl bg-[#f7f5ef] px-5 py-3">
+            <span className="mt-0.5 shrink-0 font-bold text-[#d69f44]">1</span>
+            <span>You&apos;ll be taken to Facebook to log in and grant permissions</span>
+          </div>
+          <div className="flex items-start gap-3 rounded-2xl bg-[#f7f5ef] px-5 py-3">
+            <span className="mt-0.5 shrink-0 font-bold text-[#d69f44]">2</span>
+            <span>Select the business page you&apos;d like to connect</span>
+          </div>
+          <div className="flex items-start gap-3 rounded-2xl bg-[#f7f5ef] px-5 py-3">
+            <span className="mt-0.5 shrink-0 font-bold text-[#d69f44]">3</span>
+            <span>You&apos;ll be redirected back here to see your dashboard</span>
+          </div>
+        </div>
         <a
           href={connectHref}
-          className="mt-6 inline-flex rounded-full bg-[#1877f2] px-6 py-3 font-semibold text-white transition hover:bg-[#1669d8]"
+          className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#1877f2] px-6 py-3.5 font-semibold text-white transition hover:bg-[#1669d8]"
         >
-          Connect Facebook
+          Connect Facebook Page →
         </a>
+        <p className="mt-4 text-xs text-[#8c9ba0]">
+          We only request permissions needed to publish to your page.
+        </p>
       </div>
     </div>
   );
@@ -372,6 +398,15 @@ function PostsFeed(props: { posts: FacebookPagePost[] }) {
   );
 }
 
+// ─── Greeting helpers ─────────────────────────────────────────────────────────
+
+function getTimeOfDayGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
@@ -402,7 +437,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const hasLookupParams = !!(onboardingId || stripeCustomerId || stripeSubscriptionId || lookupEmail);
 
   if (!hasLookupParams) {
-    return <NoParamsState />;
+    return (
+      <div className="min-h-screen bg-[#f7f5ef]">
+        <Nav />
+        <NoParamsState />
+      </div>
+    );
   }
 
   const record = await fetchCustomerFacebookConnection({
@@ -414,11 +454,21 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   // If the user is logged in but has no record, show the no-subscription state.
   if (!record && authEmail) {
-    return <NoSubscriptionState />;
+    return (
+      <div className="min-h-screen bg-[#f7f5ef]">
+        <Nav />
+        <NoSubscriptionState />
+      </div>
+    );
   }
 
   if (!record) {
-    return <NotFoundState />;
+    return (
+      <div className="min-h-screen bg-[#f7f5ef]">
+        <Nav />
+        <NotFoundState />
+      </div>
+    );
   }
 
   const customerParams = {
@@ -429,7 +479,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   };
 
   if (!record.facebook_connected_at || !record.facebook_long_lived_user_access_token) {
-    return <ConnectFacebookState {...customerParams} />;
+    return (
+      <div className="min-h-screen bg-[#f7f5ef]">
+        <Nav />
+        <ConnectFacebookState {...customerParams} />
+      </div>
+    );
   }
 
   const tokenExpired =
@@ -438,7 +493,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       : false;
 
   if (tokenExpired) {
-    return <TokenExpiredState {...customerParams} />;
+    return (
+      <div className="min-h-screen bg-[#f7f5ef]">
+        <Nav />
+        <TokenExpiredState {...customerParams} />
+      </div>
+    );
   }
 
   // Fetch all pages the user can manage
@@ -446,11 +506,21 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   try {
     pages = await fetchFacebookPages(record.facebook_long_lived_user_access_token);
   } catch {
-    return <TokenExpiredState {...customerParams} />;
+    return (
+      <div className="min-h-screen bg-[#f7f5ef]">
+        <Nav />
+        <TokenExpiredState {...customerParams} />
+      </div>
+    );
   }
 
   if (!pages.length) {
-    return <NoPagesState {...customerParams} />;
+    return (
+      <div className="min-h-screen bg-[#f7f5ef]">
+        <Nav />
+        <NoPagesState {...customerParams} />
+      </div>
+    );
   }
 
   // Determine which page to display
@@ -469,12 +539,20 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   if (!pageAccessToken) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center px-6">
-        <div className="rounded-3xl border border-[#e3c2b7] bg-[#fff4ef] p-10 text-center">
-          <p className="text-[#7a3d2b]">No access token available for this page. Try reconnecting Facebook.</p>
-          <a href={buildConnectHref(customerParams)} className="mt-4 inline-flex rounded-full bg-[#1877f2] px-6 py-3 font-semibold text-white transition hover:bg-[#1669d8]">
-            Reconnect Facebook
-          </a>
+      <div className="min-h-screen bg-[#f7f5ef]">
+        <Nav />
+        <div className="flex min-h-[60vh] items-center justify-center px-6">
+          <div className="rounded-3xl border border-[#e3c2b7] bg-[#fff4ef] p-10 text-center">
+            <p className="text-[#7a3d2b]">
+              No access token available for this page. Try reconnecting Facebook.
+            </p>
+            <a
+              href={buildConnectHref(customerParams)}
+              className="mt-4 inline-flex rounded-full bg-[#1877f2] px-6 py-3 font-semibold text-white transition hover:bg-[#1669d8]"
+            >
+              Reconnect Facebook
+            </a>
+          </div>
         </div>
       </div>
     );
@@ -497,14 +575,30 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const pageInfoError = pageInfo.status === "rejected" ? (pageInfo.reason as Error)?.message ?? "Unknown error" : null;
   const postsError = posts.status === "rejected" ? (posts.reason as Error)?.message ?? "Unknown error" : null;
 
+  const greeting = getTimeOfDayGreeting();
+  const displayName =
+    record.business_name ??
+    (record.customer_email ? record.customer_email.split("@")[0] : "there");
+
   return (
     <div className="min-h-screen bg-[#f7f5ef] text-[#132027]">
+      <Nav />
       <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-12 sm:px-10">
 
-        {/* Dashboard header actions */}
-        <div className="flex items-center justify-end gap-3">
-          <ManageSubscriptionButton {...customerParams} />
-          {authEmail ? <SignOutButton /> : null}
+        {/* Dashboard header: greeting + actions */}
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#846b42]">
+              Dashboard
+            </p>
+            <h1 className="mt-1 text-2xl font-bold text-[#132027]">
+              {greeting}, {displayName}!
+            </h1>
+          </div>
+          <div className="flex items-center gap-3">
+            <ManageSubscriptionButton {...customerParams} />
+            {authEmail ? <SignOutButton /> : null}
+          </div>
         </div>
 
         {/* Success / error banners */}
