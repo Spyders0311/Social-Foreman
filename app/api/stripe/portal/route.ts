@@ -6,18 +6,32 @@ import { getStripeClient } from "../../../../src/lib/stripe";
 export async function POST(request: Request) {
   const origin = new URL(request.url).origin;
 
+  // Accept lookup params from request body (legacy onboarding-link flow)
+  let body: Record<string, string> = {};
+  try { body = await request.json(); } catch { /* no body */ }
+
   const supabase = await createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user?.email) {
+  // Require either a logged-in session OR a legacy lookup param
+  const hasLegacyParam = body.onboardingId || body.stripeCustomerId || body.stripeSubscriptionId || body.customerEmail;
+  if (!user?.email && !hasLegacyParam) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const record = await fetchCustomerFacebookConnection({
-    customerEmail: user.email,
-  }).catch(() => null);
+  const record = await fetchCustomerFacebookConnection(
+    user?.email
+      ? { customerEmail: user.email }
+      : body.onboardingId
+        ? { onboardingId: body.onboardingId }
+        : body.stripeCustomerId
+          ? { stripeCustomerId: body.stripeCustomerId }
+          : body.stripeSubscriptionId
+            ? { stripeSubscriptionId: body.stripeSubscriptionId }
+            : { customerEmail: body.customerEmail }
+  ).catch(() => null);
 
   if (!record?.stripe_customer_id) {
     return NextResponse.json({ error: "No Stripe customer found" }, { status: 404 });

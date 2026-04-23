@@ -2,6 +2,7 @@ import Image from "next/image";
 import { fetchCustomerFacebookConnection } from "../../src/lib/customer-store";
 import { createServerClient } from "../../src/lib/supabase-server";
 import { PostComposer } from "./PostComposer";
+import { ManageSubscriptionButton } from "./ManageSubscriptionButton";
 import {
   fetchFacebookPageInfo,
   fetchFacebookPagePosts,
@@ -208,18 +209,7 @@ function SignOutButton() {
   );
 }
 
-function ManageSubscriptionButton() {
-  return (
-    <form action="/api/stripe/portal" method="POST">
-      <button
-        type="submit"
-        className="rounded-full border border-[#d9d2c3] bg-white px-5 py-2 text-sm font-semibold text-[#132027] transition hover:bg-[#f7f5ef]"
-      >
-        Manage subscription
-      </button>
-    </form>
-  );
-}
+// ManageSubscriptionButton is a client component — see ManageSubscriptionButton.tsx
 
 // ─── Page identity header ─────────────────────────────────────────────────────
 
@@ -512,7 +502,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
         {/* Dashboard header actions */}
         <div className="flex items-center justify-end gap-3">
-          <ManageSubscriptionButton />
+          <ManageSubscriptionButton {...customerParams} />
           {authEmail ? <SignOutButton /> : null}
         </div>
 
