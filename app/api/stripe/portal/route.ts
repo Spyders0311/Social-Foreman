@@ -43,5 +43,5 @@ export async function POST(request: Request) {
     return_url: `${origin}/dashboard`,
   });
 
-  return NextResponse.redirect(session.url, { status: 303 });
+  return NextResponse.json({ url: session.url });
 }
