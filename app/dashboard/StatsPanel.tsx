@@ -40,7 +40,7 @@ export function StatsPanel(props: StatsPanelProps) {
 
   return (
     <section className="space-y-3">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3">
         <StatCard label="Posts Published" value={postsCount.toLocaleString()} />
         <StatCard label="Page Followers" value={followersDisplay} />
         <StatCard label="Connected Since" value={connectedDisplay} />
@@ -48,9 +48,11 @@ export function StatsPanel(props: StatsPanelProps) {
       </div>
 
       {(totalLikes > 0 || totalComments > 0 || totalShares > 0) && (
-        <p className="px-1 text-sm text-[#846b42]">
-          ❤️ {totalLikes.toLocaleString()} likes · 💬 {totalComments.toLocaleString()} comments · 🔁 {totalShares.toLocaleString()} shares
-        </p>
+        <div className="rounded-2xl border border-[#d9d2c3] bg-white px-5 py-3 shadow-sm text-center">
+          <p className="text-sm font-medium text-[#405058]">
+            ❤️ {totalLikes.toLocaleString()} likes · 💬 {totalComments.toLocaleString()} comments · 🔁 {totalShares.toLocaleString()} shares
+          </p>
+        </div>
       )}
     </section>
   );

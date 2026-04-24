@@ -251,36 +251,31 @@ function PageIdentityHeader(props: {
       : null;
 
   return (
-    <section className="rounded-3xl bg-gradient-to-br from-[#132027] to-[#21414b] p-8 text-[#f8f2e8] sm:p-10">
-      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d7c6a1]">
-        Facebook Page Identity
+    <div className="rounded-3xl bg-gradient-to-br from-[#132027] to-[#21414b] p-6 text-[#f8f2e8] sm:p-8 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#d7c6a1]">
+        Connected Page
       </p>
-      <div className="mt-5 flex items-center gap-5">
+      <div className="mt-4 flex flex-col gap-4">
         {pageInfo.pictureUrl ? (
           <Image
             src={pageInfo.pictureUrl}
             alt={pageInfo.name}
-            width={72}
-            height={72}
-            className="h-18 w-18 rounded-full border-2 border-white/20 object-cover"
+            width={64}
+            height={64}
+            className="h-16 w-16 rounded-full border-2 border-white/20 object-cover shadow-sm"
             unoptimized
           />
         ) : (
-          <div className="flex h-18 w-18 items-center justify-center rounded-full bg-[#1877f2] text-2xl font-bold text-white">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#1877f2] text-xl font-bold text-white shadow-sm">
             {pageInfo.name.charAt(0).toUpperCase()}
           </div>
         )}
         <div>
-          <h1 className="text-3xl font-bold leading-tight sm:text-4xl">{pageInfo.name}</h1>
-          <p className="mt-1 text-sm text-[#d8cec1]">Page ID: {pageInfo.id}</p>
-          {displayFollowers ? (
-            <p className="mt-1 text-sm font-semibold text-[#d7c6a1]">
-              {displayFollowers} followers
-            </p>
-          ) : null}
+          <h2 className="text-2xl font-bold leading-tight">{pageInfo.name}</h2>
+          <p className="mt-1 text-xs text-[#8ba0a6]">ID: {pageInfo.id}</p>
         </div>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -295,10 +290,9 @@ function PagePicker(props: {
   if (pages.length <= 1) return null;
 
   return (
-    <section className="rounded-3xl border border-[#d9d2c3] bg-white p-6 sm:p-8">
-      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#846b42]">Page selector</p>
-      <h2 className="mt-2 text-xl font-bold text-[#132027]">Switch Facebook Page</h2>
-      <div className="mt-4 flex flex-wrap gap-3">
+    <div className="rounded-3xl border border-[#d9d2c3] bg-white p-6 sm:p-8 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#846b42]">Switch Page</p>
+      <div className="mt-4 flex flex-col gap-2">
         {pages.map((page) => {
           const href = buildDashboardHref({ onboardingId, pageId: page.id });
           const isActive = page.id === activePageId;
@@ -306,10 +300,10 @@ function PagePicker(props: {
             <a
               key={page.id}
               href={href}
-              className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+              className={`block rounded-xl px-4 py-3 text-sm font-semibold transition ${
                 isActive
                   ? "bg-[#132027] text-[#f8f2e8]"
-                  : "border border-[#d9d2c3] bg-white text-[#132027] hover:bg-[#f7f5ef]"
+                  : "border border-[#e8e2d9] bg-white text-[#132027] hover:bg-[#f7f5ef]"
               }`}
             >
               {page.name}
@@ -317,7 +311,7 @@ function PagePicker(props: {
           );
         })}
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -583,15 +577,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   return (
     <div className="min-h-screen bg-[#f7f5ef] text-[#132027]">
       <Nav />
-      <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-12 sm:px-10">
+      <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-12 sm:px-10">
 
         {/* Dashboard header: greeting + actions */}
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#e8e2d9] pb-6">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#846b42]">
-              Dashboard
-            </p>
-            <h1 className="mt-1 text-2xl font-bold text-[#132027]">
+            <h1 className="text-3xl font-bold text-[#132027] tracking-tight">
               {greeting}, {displayName}!
             </h1>
           </div>
@@ -619,66 +610,77 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           </div>
         ) : null}
 
-        {/* Page identity — always visible, required by Meta */}
-        <PageIdentityHeader pageInfo={resolvedPageInfo} />
+        {/* Modern 2-column Dashboard Layout */}
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
+          
+          {/* Main Content (Left - 2/3 width) */}
+          <div className="flex flex-col gap-8 lg:col-span-8">
+            
+            {/* Post composer */}
+            <PostComposer
+              pageId={activePage.id}
+              onboardingId={record.id}
+              pageName={resolvedPageInfo.name}
+            />
 
-        {/* Stats panel */}
-        <StatsPanel
-          postsCount={resolvedPosts.length}
-          followersCount={resolvedPageInfo.followersCount > 0 ? resolvedPageInfo.followersCount : resolvedPageInfo.fanCount}
-          connectedSince={record.facebook_connected_at}
-          postingPlan={
-            record.posts_per_week != null
-              ? `${record.posts_per_week}× per week`
-              : record.posting_cadence_label ?? record.plan_name ?? null
-          }
-          totalLikes={resolvedPosts.reduce((sum, p) => sum + p.likesCount, 0)}
-          totalComments={resolvedPosts.reduce((sum, p) => sum + p.commentsCount, 0)}
-          totalShares={resolvedPosts.reduce((sum, p) => sum + p.sharesCount, 0)}
-        />
+            {/* Recent posts feed */}
+            <section>
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-[#132027]">
+                    Recent Posts
+                  </h2>
+                </div>
+                <a
+                  href={buildDashboardHref({ onboardingId: record.id, pageId: activePage.id })}
+                  className="rounded-full border border-[#d9d2c3] bg-white px-4 py-2 text-sm font-semibold text-[#132027] transition hover:bg-[#f7f5ef] shadow-sm"
+                >
+                  Refresh Feed
+                </a>
+              </div>
 
-        {pageInfoError ? (
-          <div className="rounded-2xl border border-[#f0d9a6] bg-[#fff8e8] px-5 py-4 text-sm text-[#6a4c12]">
-            Could not load full page details: {pageInfoError}
-          </div>
-        ) : null}
-
-        {/* Page picker — shown when user manages multiple pages */}
-        <PagePicker pages={pages} activePageId={activePage.id} onboardingId={record.id} />
-
-        {/* Recent posts — uses pages_read_engagement */}
-        <section>
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#846b42]">Recent posts</p>
-              <h2 className="mt-1 text-2xl font-bold text-[#132027]">
-                Page content via <code className="rounded bg-[#ede8df] px-1.5 py-0.5 text-base">pages_read_engagement</code>
-              </h2>
-            </div>
-            <a
-              href={buildDashboardHref({ onboardingId: record.id, pageId: activePage.id })}
-              className="rounded-full border border-[#d9d2c3] bg-white px-4 py-2 text-sm font-semibold text-[#132027] transition hover:bg-[#f7f5ef]"
-            >
-              Refresh
-            </a>
+              {postsError ? (
+                <div className="rounded-2xl border border-[#e3c2b7] bg-[#fff4ef] px-5 py-4 text-sm text-[#7a3d2b]">
+                  Could not load posts: {postsError}
+                </div>
+              ) : (
+                <PostsFeed posts={resolvedPosts} />
+              )}
+            </section>
           </div>
 
-          {postsError ? (
-            <div className="rounded-2xl border border-[#e3c2b7] bg-[#fff4ef] px-5 py-4 text-sm text-[#7a3d2b]">
-              Could not load posts: {postsError}
-            </div>
-          ) : (
-            <PostsFeed posts={resolvedPosts} />
-          )}
-        </section>
+          {/* Sidebar (Right - 1/3 width) */}
+          <div className="flex flex-col gap-6 lg:col-span-4">
+            
+            {/* Page identity */}
+            <PageIdentityHeader pageInfo={resolvedPageInfo} />
 
-        {/* Post composer — uses pages_manage_posts */}
-        <PostComposer
-          pageId={activePage.id}
-          onboardingId={record.id}
-          pageName={resolvedPageInfo.name}
-        />
+            {pageInfoError ? (
+              <div className="rounded-2xl border border-[#f0d9a6] bg-[#fff8e8] px-5 py-4 text-sm text-[#6a4c12]">
+                Could not load full page details: {pageInfoError}
+              </div>
+            ) : null}
 
+            {/* Stats panel */}
+            <StatsPanel
+              postsCount={resolvedPosts.length}
+              followersCount={resolvedPageInfo.followersCount > 0 ? resolvedPageInfo.followersCount : resolvedPageInfo.fanCount}
+              connectedSince={record.facebook_connected_at}
+              postingPlan={
+                record.posts_per_week != null
+                  ? `${record.posts_per_week}× per week`
+                  : record.posting_cadence_label ?? record.plan_name ?? null
+              }
+              totalLikes={resolvedPosts.reduce((sum, p) => sum + p.likesCount, 0)}
+              totalComments={resolvedPosts.reduce((sum, p) => sum + p.commentsCount, 0)}
+              totalShares={resolvedPosts.reduce((sum, p) => sum + p.sharesCount, 0)}
+            />
+
+            {/* Page picker — shown when user manages multiple pages */}
+            <PagePicker pages={pages} activePageId={activePage.id} onboardingId={record.id} />
+          </div>
+
+        </div>
       </main>
     </div>
   );
