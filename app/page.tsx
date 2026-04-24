@@ -18,7 +18,7 @@ const outcomes = [
   {
     title: "Content that actually builds trust",
     description:
-      "Generic posts get ignored. We write real job content — before/after photos, local tips, the kind of posts that make a homeowner think 'these are the people I want to call.' Your trade, your service area, your voice.",
+      "Generic posts get ignored. We write real job content — local advice, common problem-solving, and the kind of posts that make a homeowner think 'these are the people I want to call.' Your trade, your service area, your voice.",
   },
   {
     title: "Stay focused on the work, not the feed",
@@ -241,7 +241,7 @@ export default function Home() {
                 </li>
                 <li className="flex gap-3">
                   <span className="shrink-0 text-[#6ee59b]">•</span>
-                  Before/after job photos with your service area tagged
+                  Hyper-local advice calling out your specific service area
                 </li>
               </ul>
             </div>
